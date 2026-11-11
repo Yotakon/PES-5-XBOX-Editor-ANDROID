@@ -11,5 +11,6 @@
     <item android:id="@+id/action_export_team" android:title="Exportar este equipo…" />
     <item android:id="@+id/action_export_all" android:title="Exportar todos los equipos a una carpeta…" />
     <item android:id="@+id/action_import_team" android:title="Importar equipo…" />
+    <item android:id="@+id/action_updates" android:title="Buscar actualizaciones" />
     <item android:id="@+id/action_settings" android:title="Posiciones de los datos de cara" />
 </menu>

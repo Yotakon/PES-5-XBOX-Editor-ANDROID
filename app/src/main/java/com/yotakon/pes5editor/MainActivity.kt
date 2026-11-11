@@ -138,6 +138,7 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) = refreshList()
         })
         showState()
+        if (savedInstanceState == null) Updates.check(this, quiet = true)
     }
 
     override fun onResume() {
@@ -160,7 +161,7 @@ class MainActivity : AppCompatActivity() {
             val writes = item.itemId in setOf(R.id.action_save, R.id.action_save_as, R.id.action_import_faces,
                 R.id.action_remove_special, R.id.action_import_team)
             item.isEnabled = (open && !(writes && readOnly)) || item.itemId == R.id.action_open ||
-                item.itemId == R.id.action_settings
+                item.itemId == R.id.action_settings || item.itemId == R.id.action_updates
         }
         return super.onPrepareOptionsMenu(menu)
     }
@@ -178,6 +179,7 @@ class MainActivity : AppCompatActivity() {
             R.id.action_export_all -> openTree.launch(null)
             R.id.action_import_team -> openTeam.launch(arrayOf("*/*"))
             R.id.action_settings -> startActivity(Intent(this, SettingsActivity::class.java))
+            R.id.action_updates -> Updates.check(this, quiet = false)
             else -> return super.onOptionsItemSelected(item)
         }
         return true
@@ -500,27 +502,8 @@ class MainActivity : AppCompatActivity() {
         val map = FaceMapStore.load(this)
         val specials = faces.specialFaces(of)
         val known = specials.count { map.get(it.skin, it.number) != null }
-        val modeGroup = RadioGroup(this)
-        val byMap = RadioButton(this).apply {
-            id = View.generateViewId()
-            text = "Usar la tabla de equivalencias ($known de ${specials.size} caras especiales tienen equivalencia)"
-        }
-        val byOffset = RadioButton(this).apply {
-            id = View.generateViewId()
-            text = "Sumar un desplazamiento al número (no recomendado: la copia normal no está a una distancia fija)"
-        }
-        modeGroup.addView(byMap)
-        modeGroup.addView(byOffset)
-        modeGroup.check(byMap.id)
-        box.addView(modeGroup)
-        box.addView(label("Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Tabla de equivalencias de caras\"."))
-        val offset = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
-            setText("0")
-            isEnabled = false
-        }
-        modeGroup.setOnCheckedChangeListener { _, checked -> offset.isEnabled = checked == byOffset.id }
-        box.addView(offset)
+        box.addView(label("Se usa la tabla de equivalencias: $known de ${specials.size} caras especiales tienen su copia normal. " +
+            "Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Tabla de equivalencias de caras\"."))
         val separate = CheckBox(this).apply {
             text = "Guardar en un option file aparte (el abierto no cambia)"
             isChecked = true
@@ -535,11 +518,8 @@ class MainActivity : AppCompatActivity() {
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val useMap = modeGroup.checkedRadioButtonId == byMap.id
-                val off = if (useMap) 0 else parseIn(offset, -511..511) ?: return@setOnClickListener
                 val ids = if (group.checkedRadioButtonId == onlyTeam.id) Teams.squadIds(of, team) else Players.allIds
-                fun run(target: OptionFile) =
-                    if (useMap) FaceTools.removeSpecialWithMap(target, faces, ids, map) else FaceTools.removeSpecial(target, faces, ids, off)
+                fun run(target: OptionFile) = FaceTools.removeSpecialWithMap(target, faces, ids, map)
                 dialog.dismiss()
                 if (separate.isChecked) {
                     val copy = of.copy()
@@ -565,7 +545,7 @@ class MainActivity : AppCompatActivity() {
         val msg = buildString {
             append("Jugadores con cara especial: ${changes.size}\n")
             append("Pasados a cara normal: $changed\n")
-            if (changes.size > changed) append("Sin cambios (sin equivalencia o fuera de rango): ${changes.size - changed}\n")
+            if (changes.size > changed) append("Sin cambios (sin equivalencia): ${changes.size - changed}\n")
             if (extra != null && changed > 0) append('\n').append(extra)
         }
         val b = AlertDialog.Builder(this).setTitle("Quitar caras especiales").setMessage(msg)

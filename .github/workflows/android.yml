@@ -41,7 +41,9 @@ jobs:
           gh release create "$TAG" PES5XboxEditor.apk \
             --target "$GITHUB_SHA" --prerelease \
             --title "PES5 Xbox Editor (última compilación de ${{ github.ref_name }})" \
-            --notes "APK de prueba compilado automáticamente desde la rama ${{ github.ref_name }} ($GITHUB_SHA)."
+            --notes "APK de prueba compilado automáticamente desde la rama ${{ github.ref_name }} ($GITHUB_SHA).
+
+          versionCode: $((100 + GITHUB_RUN_NUMBER))"
 
       - uses: actions/upload-artifact@v4
         if: always()

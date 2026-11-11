@@ -11,13 +11,33 @@ android {
         applicationId = "com.yotakon.pes5editor"
         minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        // En GitHub Actions cada compilación sube el número, así el APK nuevo se instala encima del anterior
+        val run = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0
+        versionCode = 100 + run
+        versionName = "0.2.$run"
+    }
+
+    // Misma firma en todas las compilaciones (si la firma cambia, Android no deja actualizar)
+    signingConfigs {
+        create("app") {
+            storeFile = rootProject.file("firma/pes5editor.jks")
+            storePassword = "pes5editor"
+            keyAlias = "pes5editor"
+            keyPassword = "pes5editor"
+        }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("app")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("app")
         }
     }
 

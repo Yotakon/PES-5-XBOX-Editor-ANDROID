@@ -15,28 +15,6 @@ object FaceTools {
         val changed get() = oldType != newType || oldNumber != newNumber
     }
 
-    /**
-     * Pasa a cara normal a los jugadores de [ids] con cara especial.
-     * Número nuevo = número actual + [offset]. Si queda fuera de rango, el jugador no se toca.
-     */
-    fun removeSpecial(of: OptionFile, ff: FaceFields, ids: IntArray, offset: Int): List<Change> {
-        val out = ArrayList<Change>()
-        val max = ff.face.mask + 1
-        for (id in ids) {
-            if (!Players.isValid(id) || ff.type.get(of, id) != FaceFields.SPECIAL) continue
-            val f = ff.read(of, id)
-            val n = f.number + offset
-            val name = Players.name(of, id)
-            if (n < 1 || n > max) {
-                out += Change(id, name, f.type, f.number, f.type, f.number, "sin cambios: número fuera de rango")
-                continue
-            }
-            ff.write(of, id, f.copy(type = FaceFields.NORMAL, number = n))
-            out += Change(id, name, f.type, f.number, FaceFields.NORMAL, n)
-        }
-        return out
-    }
-
     /** Informe de cambios. Tiene las columnas de importCsv para deshacer (usa TIPO CARA / NUMERO CARA de antes). */
     fun report(changes: List<Change>): String = buildString {
         append('\uFEFF')

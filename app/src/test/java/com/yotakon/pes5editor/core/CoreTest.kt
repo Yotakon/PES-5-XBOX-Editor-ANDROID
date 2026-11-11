@@ -121,18 +121,21 @@ class CoreTest {
     }
 
     @Test
-    fun removeSpecialWithOffset() {
+    fun removeSpecialWithMapAndUndo() {
         val of = randomOf(5)
         val ff = FaceFields()
         for (id in Players.allIds) ff.type.set(of, id, FaceFields.NORMAL)
         ff.write(of, 1000, Face(FaceFields.SPECIAL, 101, 1, 0))
-        ff.write(of, 2000, Face(FaceFields.SPECIAL, 6, 1, 0))
+        ff.write(of, 2000, Face(FaceFields.SPECIAL, 6, 3, 0))
         ff.write(of, 32770, Face(FaceFields.SPECIAL, 512, 1, 0))
-        val ch = FaceTools.removeSpecial(of, ff, Players.allIds, 1)
+        val map = FaceMap()
+        map.set(1, 101, 150)
+        map.set(3, 6, 8)
+        val ch = FaceTools.removeSpecialWithMap(of, ff, Players.allIds, map)
         assertEquals(3, ch.size)
-        assertEquals(Face(FaceFields.NORMAL, 102, 1, 0), ff.read(of, 1000))
-        assertEquals(Face(FaceFields.NORMAL, 7, 1, 0), ff.read(of, 2000))
-        assertEquals(FaceFields.SPECIAL, ff.read(of, 32770).type) // 513 no existe
+        assertEquals(Face(FaceFields.NORMAL, 150, 1, 0), ff.read(of, 1000))
+        assertEquals(Face(FaceFields.NORMAL, 8, 3, 0), ff.read(of, 2000))
+        assertEquals(FaceFields.SPECIAL, ff.read(of, 32770).type) // sin equivalencia
         assertFalse(ch.first { it.id == 32770 }.changed)
 
         // El informe sirve para deshacer

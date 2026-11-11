@@ -9,6 +9,12 @@ APK de la última compilación de la rama `app-editor`:
 
 **Haz siempre una copia de tu partida antes de editarla.**
 
+### Actualizar
+
+Todas las compilaciones van firmadas con la misma clave (`firma/pes5editor.jks`) y cada una tiene un número de versión mayor, así que el APK nuevo se instala encima del anterior sin perder los ajustes ni la tabla de equivalencias. La app comprueba una vez al día si hay una versión nueva y avisa; también se puede comprobar en el menú con **Buscar actualizaciones**.
+
+La clave de firma está en el repositorio para que GitHub Actions pueda usarla. Sirve para una app de uso personal; no la reutilices para otras apps.
+
 ## Uso
 
 1. Copia la partida de la Xbox al móvil por FTP. En la consola está en `E:\UDATA\4b4e0030\5252897584A1\KONAMI-XBOX-PES5OPT.xsv`.
@@ -35,7 +41,7 @@ Poner a un jugador **cara normal** con el número de la cara que quieres es reli
 
 - **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4) y `PELO` (0–2047). Las celdas vacías no cambian nada.
 - **Quitar caras especiales**: pasa a cara normal a todos los jugadores con cara especial, o solo a los del equipo elegido.
-  - El número de cara nuevo es el actual más un desplazamiento (0 conserva el número).
+  - Cada jugador pasa a la cara normal que es copia de su cara especial, según la tabla de equivalencias incluida en la app.
   - Por defecto guarda el resultado en un option file aparte.
   - Al terminar puedes guardar un informe CSV. Si importas ese informe con *Importar caras*, se deshacen los cambios.
 - **Exportar este equipo / todos los equipos**: archivos `.pes5eq` con la plantilla, los dorsales, la formación (posiciones, estrategia, capitán y lanzadores), los datos de los jugadores y el nombre del club. Son compatibles con el editor de escritorio.
