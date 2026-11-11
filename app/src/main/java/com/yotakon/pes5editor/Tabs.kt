@@ -310,7 +310,7 @@ class TransferTab(act: MainActivity) : EditorTab(act) {
             val clubs = Transfers.clubsOf(of, id).joinToString { Teams.name(of, it) }.ifEmpty { "ninguno" }
             AlertDialog.Builder(act).setTitle(Players.name(of, id))
                 .setMessage("ID $id\nClub: $clubs")
-                .setPositiveButton("Editar jugador (FACE, HAIR…)") { _, _ -> act.openFaceEditor(id) { refresh() } }
+                .setPositiveButton("Editar jugador") { _, _ -> act.openFaceEditor(id) { refresh() } }
                 .setNegativeButton("Cerrar", null)
                 .show()
             return
@@ -329,7 +329,7 @@ class TransferTab(act: MainActivity) : EditorTab(act) {
                     refresh()
                 }
             }
-            options += "Editar jugador (FACE, HAIR…)" to { act.openFaceEditor(id) { refresh() } }
+            options += "Editar jugador" to { act.openFaceEditor(id) { refresh() } }
         }
         if (options.isEmpty()) return
         AlertDialog.Builder(act).setTitle(if (id != 0) Players.name(of, id) else "Hueco vacío")
