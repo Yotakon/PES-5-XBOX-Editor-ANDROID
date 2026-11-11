@@ -34,6 +34,9 @@ import com.google.android.material.tabs.TabLayout
 import com.yotakon.pes5editor.core.BadSignatureException
 import com.yotakon.pes5editor.core.Face
 import com.yotakon.pes5editor.core.FaceFields
+import com.yotakon.pes5editor.core.FaceMap
+import com.yotakon.pes5editor.core.removeSpecialWithMap
+import com.yotakon.pes5editor.core.specialFaces
 import com.yotakon.pes5editor.core.FaceTools
 import com.yotakon.pes5editor.core.OptionFile
 import com.yotakon.pes5editor.core.OptionFileException
@@ -156,7 +159,8 @@ class MainActivity : AppCompatActivity() {
             val item = menu.getItem(i)
             val writes = item.itemId in setOf(R.id.action_save, R.id.action_save_as, R.id.action_import_faces,
                 R.id.action_remove_special, R.id.action_import_team)
-            item.isEnabled = (open && !(writes && readOnly)) || item.itemId == R.id.action_open || item.itemId == R.id.action_settings
+            item.isEnabled = (open && !(writes && readOnly)) || item.itemId == R.id.action_open ||
+                item.itemId == R.id.action_settings
         }
         return super.onPrepareOptionsMenu(menu)
     }
@@ -169,6 +173,7 @@ class MainActivity : AppCompatActivity() {
             R.id.action_export_faces -> exportFacesCsv()
             R.id.action_import_faces -> openCsv.launch(arrayOf("text/*", "application/*", "*/*"))
             R.id.action_remove_special -> removeSpecialDialog()
+            R.id.action_face_map -> FaceMapDialog(this).show()
             R.id.action_export_team -> exportCurrentTeam()
             R.id.action_export_all -> openTree.launch(null)
             R.id.action_import_team -> openTeam.launch(arrayOf("*/*"))
@@ -197,6 +202,31 @@ class MainActivity : AppCompatActivity() {
             return false
         }
         return true
+    }
+
+    private var pendingFile: ((Uri) -> Unit)? = null
+    private val openAny = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val cb = pendingFile
+        pendingFile = null
+        if (uri != null && cb != null) cb(uri)
+    }
+
+    /** Pide un archivo y devuelve su texto (UTF-8). */
+    fun pickText(cb: (String) -> Unit) {
+        pendingFile = { uri ->
+            try {
+                cb(String(readAll(uri), Charsets.UTF_8))
+            } catch (e: Exception) {
+                error("No se pudo leer el archivo: ${e.message}")
+            }
+        }
+        openAny.launch(arrayOf("*/*"))
+    }
+
+    fun saveText(name: String, text: String) {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        pendingWrite = { uri -> if (writeTo(uri, bytes)) toast("Guardado") }
+        createCsv.launch(name)
     }
 
     fun pickImage(cb: (Uri) -> Unit) {
@@ -467,12 +497,29 @@ class MainActivity : AppCompatActivity() {
         group.addView(onlyTeam)
         group.check(all.id)
         box.addView(group)
-        box.addView(label("Cada jugador pasa a cara normal con su número actual más este desplazamiento. " +
-            "Con 0 conserva el mismo número."))
+        val map = FaceMapStore.load(this)
+        val specials = faces.specialFaces(of)
+        val known = specials.count { map.get(it.skin, it.number) != null }
+        val modeGroup = RadioGroup(this)
+        val byMap = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = "Usar la tabla de equivalencias ($known de ${specials.size} caras especiales tienen equivalencia)"
+        }
+        val byOffset = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = "Sumar un desplazamiento al número (no recomendado: la copia normal no está a una distancia fija)"
+        }
+        modeGroup.addView(byMap)
+        modeGroup.addView(byOffset)
+        modeGroup.check(byMap.id)
+        box.addView(modeGroup)
+        box.addView(label("Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Tabla de equivalencias de caras\"."))
         val offset = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
             setText("0")
+            isEnabled = false
         }
+        modeGroup.setOnCheckedChangeListener { _, checked -> offset.isEnabled = checked == byOffset.id }
         box.addView(offset)
         val separate = CheckBox(this).apply {
             text = "Guardar en un option file aparte (el abierto no cambia)"
@@ -488,19 +535,22 @@ class MainActivity : AppCompatActivity() {
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val off = parseIn(offset, -511..511) ?: return@setOnClickListener
+                val useMap = modeGroup.checkedRadioButtonId == byMap.id
+                val off = if (useMap) 0 else parseIn(offset, -511..511) ?: return@setOnClickListener
                 val ids = if (group.checkedRadioButtonId == onlyTeam.id) Teams.squadIds(of, team) else Players.allIds
+                fun run(target: OptionFile) =
+                    if (useMap) FaceTools.removeSpecialWithMap(target, faces, ids, map) else FaceTools.removeSpecial(target, faces, ids, off)
                 dialog.dismiss()
                 if (separate.isChecked) {
                     val copy = of.copy()
-                    val changes = FaceTools.removeSpecial(copy, faces, ids, off)
+                    val changes = run(copy)
                     if (changes.none { it.changed }) {
                         showRemoveResult(changes, null)
                     } else {
                         saveAs(copy, "Option file sin caras especiales guardado") { showRemoveResult(changes, "Guardado en un archivo aparte.") }
                     }
                 } else {
-                    val changes = FaceTools.removeSpecial(of, faces, ids, off)
+                    val changes = run(of)
                     if (changes.any { it.changed }) markDirty()
                     refreshList()
                     showRemoveResult(changes, "Cambios hechos en el archivo abierto. Guárdalo para conservarlos.")
@@ -515,7 +565,7 @@ class MainActivity : AppCompatActivity() {
         val msg = buildString {
             append("Jugadores con cara especial: ${changes.size}\n")
             append("Pasados a cara normal: $changed\n")
-            if (changes.size > changed) append("Sin cambios (número fuera de rango): ${changes.size - changed}\n")
+            if (changes.size > changed) append("Sin cambios (sin equivalencia o fuera de rango): ${changes.size - changed}\n")
             if (extra != null && changed > 0) append('\n').append(extra)
         }
         val b = AlertDialog.Builder(this).setTitle("Quitar caras especiales").setMessage(msg)

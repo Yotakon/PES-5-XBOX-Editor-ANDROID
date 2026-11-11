@@ -152,3 +152,40 @@ class TabsCoreTest {
         assertFalse(Logos.isUsed(of, 5))
     }
 }
+
+class FaceMapTest {
+    private fun realSave(): OptionFile =
+        OptionFile.readXsv(javaClass.classLoader!!.getResourceAsStream("KONAMI-XBOX-PES5OPT.xsv")!!.readBytes())
+
+    @Test
+    fun removeWithMapUsesOnlyKnownEquivalences() {
+        val of = realSave()
+        val ff = FaceFields()
+        val ch = FaceTools.removeSpecialWithMap(of, ff, Players.allIds, FaceMap.defaults())
+        assertEquals(233, ch.size)
+        assertEquals(Face(FaceFields.NORMAL, 9, 3, 1068), ff.read(of, 999))       // Ronaldinho
+        assertEquals(FaceFields.NORMAL, ff.read(of, 3753).type)                     // Víctor Valdés
+        assertEquals(126, ff.read(of, 3753).number)
+        assertEquals(FaceFields.SPECIAL, ff.read(of, 195).type)                     // Henry: sin dato
+        assertEquals(3, ch.count { it.changed })
+    }
+
+    @Test
+    fun specialFacesGroupedBySkin() {
+        val list = FaceFields().specialFaces(realSave())
+        assertEquals(233, list.sumOf { it.players.size })
+        assertTrue(list.any { it.skin == 3 && it.number == 7 && 999 in it.players })
+    }
+
+    @Test
+    fun mapTextRoundTrip() {
+        val m = FaceMap.defaults()
+        m.set(2, 3, 50)
+        val back = FaceMap.parse(m.serialize())
+        assertEquals(4, back.size)
+        assertEquals(50, back.get(2, 3))
+        assertEquals(126, back.get(1, 68))
+        back.set(1, 68, null)
+        assertNull(back.get(1, 68))
+    }
+}

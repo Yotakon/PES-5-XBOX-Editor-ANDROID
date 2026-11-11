@@ -6,6 +6,7 @@
     <item android:id="@+id/action_save_as" android:title="Guardar como…" />
     <item android:id="@+id/action_export_faces" android:title="Exportar caras a CSV…" />
     <item android:id="@+id/action_import_faces" android:title="Importar caras desde CSV…" />
+    <item android:id="@+id/action_face_map" android:title="Tabla de equivalencias de caras…" />
     <item android:id="@+id/action_remove_special" android:title="Quitar caras especiales…" />
     <item android:id="@+id/action_export_team" android:title="Exportar este equipo…" />
     <item android:id="@+id/action_export_all" android:title="Exportar todos los equipos a una carpeta…" />

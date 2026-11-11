@@ -3,6 +3,7 @@ package com.yotakon.pes5editor
 import android.content.Context
 import android.net.Uri
 import com.yotakon.pes5editor.core.FaceFields
+import com.yotakon.pes5editor.core.FaceMap
 import com.yotakon.pes5editor.core.Field
 import com.yotakon.pes5editor.core.OptionFile
 
@@ -41,5 +42,20 @@ object FaceSettings {
         val e = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
         KEYS.forEachIndexed { i, k -> e.putString(k, values[i]) }
         e.apply()
+    }
+}
+
+/** Tabla de equivalencias cara especial -> cara normal, guardada en el móvil. */
+object FaceMapStore {
+    private const val PREFS = "equivalencias"
+    private const val KEY = "tabla"
+
+    fun load(ctx: Context): FaceMap {
+        val t = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
+        return if (t == null) FaceMap.defaults() else FaceMap.parse(t)
+    }
+
+    fun save(ctx: Context, m: FaceMap) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, m.serialize()).apply()
     }
 }

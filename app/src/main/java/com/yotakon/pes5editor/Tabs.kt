@@ -28,6 +28,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yotakon.pes5editor.core.ClubData
 import com.yotakon.pes5editor.core.Emblems
+import com.yotakon.pes5editor.core.FaceMap
+import com.yotakon.pes5editor.core.specialFaces
 import com.yotakon.pes5editor.core.IndexedImage
 import com.yotakon.pes5editor.core.Logos
 import com.yotakon.pes5editor.core.Names
@@ -686,6 +688,87 @@ class NamesTab(act: MainActivity) : EditorTab(act) {
                 change { if (stadiums) Names.setStadium(of, pos, v) else Names.setLeague(of, pos, v) }
                 refresh()
             }
+        }
+    }
+}
+
+// ============================================================================ Tabla de equivalencias
+
+/** Lista de las caras especiales del option file con la cara normal que es su copia. */
+class FaceMapDialog(private val act: MainActivity) {
+    private val of = act.requireOf()
+    private val map = FaceMapStore.load(act)
+    private val specials = act.faces.specialFaces(of)
+    private val adapter = RowAdapter { row, pos -> bind(row, pos) }
+    private val summary = TextView(act).apply { textSize = 12f }
+
+    private fun dp(v: Int) = (v * act.resources.displayMetrics.density).toInt()
+
+    fun show() {
+        val box = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), 0)
+        }
+        box.addView(TextView(act).apply {
+            text = "Las caras especiales se numeran por separado en cada color de piel. Toca una y escribe el número " +
+                "de la cara normal que es su copia (búscala en el editor del juego). Déjalo vacío para quitarla."
+        })
+        box.addView(summary)
+        val rv = RecyclerView(act).apply {
+            layoutManager = LinearLayoutManager(act)
+            adapter = this@FaceMapDialog.adapter
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(380))
+        }
+        box.addView(rv)
+        updateSummary()
+        adapter.update(specials.size)
+        AlertDialog.Builder(act).setTitle("Tabla de equivalencias")
+            .setView(box)
+            .setPositiveButton("Cerrar", null)
+            .setNeutralButton("Importar CSV") { _, _ ->
+                act.pickText { text ->
+                    val m = FaceMap.parse(text)
+                    for ((k, v) in m.entries()) map.set(k.skin, k.special, v)
+                    FaceMapStore.save(act, map)
+                    act.showToast("${m.size} equivalencias importadas")
+                }
+            }
+            .setNegativeButton("Exportar CSV") { _, _ -> act.saveText("equivalencias_caras.csv", "\uFEFF" + map.serialize()) }
+            .show()
+    }
+
+    private fun updateSummary() {
+        val known = specials.count { map.get(it.skin, it.number) != null }
+        summary.text = "Con equivalencia: $known de ${specials.size}"
+    }
+
+    private fun bind(r: TextRow, pos: Int) {
+        val sf = specials[pos]
+        val n = map.get(sf.skin, sf.number)
+        r.title.text = "Piel ${sf.skin} · especial ${sf.number} → " + (n?.let { "normal $it" } ?: "sin equivalencia")
+        r.detail.text = sf.players.joinToString { Players.name(of, it) }
+        r.setOnClickListener {
+            val e = EditText(act).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(n?.toString() ?: "")
+            }
+            val b = LinearLayout(act).apply { setPadding(dp(16), dp(8), dp(16), 0); addView(e) }
+            AlertDialog.Builder(act).setTitle("Cara normal para ${Players.name(of, sf.players.first())}")
+                .setView(b)
+                .setPositiveButton("Aceptar") { _, _ ->
+                    val t = e.text.toString().trim()
+                    val v = t.toIntOrNull()
+                    if (t.isNotEmpty() && (v == null || v !in 1..512)) {
+                        act.showError("El número va de 1 a 512")
+                    } else {
+                        map.set(sf.skin, sf.number, v)
+                        FaceMapStore.save(act, map)
+                        adapter.notifyItemChanged(pos)
+                        updateSummary()
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
         }
     }
 }
