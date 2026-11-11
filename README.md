@@ -27,9 +27,9 @@ Al guardar, la app recalcula las sumas de control y la firma de Xbox.
 
 ### Pestañas
 
-- **Jugadores**: lista por equipo con búsqueda; toca un jugador para editar su cara y pelo.
+- **Jugadores**: lista por equipo con búsqueda. Toca un jugador para editar todos sus datos: nombre, nombre en la camiseta, nacionalidad, edad, altura, peso, pie, posiciones, las 26 habilidades, estilos, habilidades especiales, FACE, HAIR (con su color), cuerpo y accesorios.
 - **Transferencias**: dos listas de equipos lado a lado. Toca un jugador y después el hueco de destino para moverlo o intercambiarlo. Si una lista es "Todos los jugadores", el jugador elegido se ficha en el hueco de la otra. Con la opción marcada, al fichar en un club se quita de su club anterior. Mantén pulsado un jugador para liberarlo, cambiar el dorsal o editar la cara.
-- **Equipos**: nombre, abreviatura, dos colores, estadio y escudo de cada club.
+- **Equipos**: nombre, abreviatura, dos colores, estadio y escudo de cada club. Uniforme de clubes y selecciones: logos del uniforme, copiar el uniforme de otro equipo e importarlo desde otro option file (con sus logos y su escudo).
 - **Escudos y logos**: añadir, reemplazar, exportar a PNG y borrar escudos (64×64, de 128 o 16 colores) y los 80 logos (32×32, 16 colores). Cualquier imagen se ajusta al tamaño y se reduce a los colores necesarios.
 - **Estadios y ligas**: nombres de los 35 estadios y de las 28 ligas y copas.
 

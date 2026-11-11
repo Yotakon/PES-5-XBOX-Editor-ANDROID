@@ -37,8 +37,9 @@ jobs:
           TAG: ultima-${{ github.ref_name }}
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk PES5XboxEditor.apk
+          echo "{\"versionCode\": $((100 + GITHUB_RUN_NUMBER)), \"date\": \"$(date -u +%Y-%m-%d)\"}" > version.json
           gh release delete "$TAG" --yes --cleanup-tag || true
-          gh release create "$TAG" PES5XboxEditor.apk \
+          gh release create "$TAG" PES5XboxEditor.apk version.json \
             --target "$GITHUB_SHA" --prerelease \
             --title "PES5 Xbox Editor (última compilación de ${{ github.ref_name }})" \
             --notes "APK de prueba compilado automáticamente desde la rama ${{ github.ref_name }} ($GITHUB_SHA).

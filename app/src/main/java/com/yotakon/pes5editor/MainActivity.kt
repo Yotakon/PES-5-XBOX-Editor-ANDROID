@@ -225,6 +225,18 @@ class MainActivity : AppCompatActivity() {
         openAny.launch(arrayOf("*/*"))
     }
 
+    /** Pide un archivo y devuelve su contenido. */
+    fun pickBytes(cb: (ByteArray) -> Unit) {
+        pendingFile = { uri ->
+            try {
+                cb(readAll(uri))
+            } catch (e: Exception) {
+                error("No se pudo leer el archivo: ${e.message}")
+            }
+        }
+        openAny.launch(arrayOf("*/*"))
+    }
+
     fun saveText(name: String, text: String) {
         val bytes = text.toByteArray(Charsets.UTF_8)
         pendingWrite = { uri -> if (writeTo(uri, bytes)) toast("Guardado") }
@@ -410,7 +422,7 @@ class MainActivity : AppCompatActivity() {
             val f = faces.read(of, r.id)
             val dorsal = r.number?.let { "$it · " } ?: ""
             h.name.text = dorsal + Players.name(of, r.id)
-            h.detail.text = "ID ${r.id} · ${FaceFields.typeName(f.type)} · cara ${f.number} · piel ${f.skin} · pelo ${f.hair}"
+            h.detail.text = "ID ${r.id} · FACE ${FaceFields.typeName(f.type)} ${f.number} · piel ${f.skin} · HAIR ${f.hair}"
             h.itemView.setOnClickListener { editFaceDialog(r.id) }
         }
     }
@@ -418,52 +430,18 @@ class MainActivity : AppCompatActivity() {
     // ---------------------------------------------------------------- editar cara
 
     private fun editFaceDialog(id: Int, after: () -> Unit = {}) {
-        val of = requireOf()
-        val old = faces.read(of, id)
-        val box = verticalBox()
-        val type = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, FaceFields.TYPE_NAMES)
-            setSelection(if (old.type in 0..2) old.type else 0)
-        }
-        box.addView(label("Tipo de cara"))
-        box.addView(type)
-        val number = numberField(box, "Número de cara (1-${faces.face.mask + 1})", old.number)
-        val skin = numberField(box, "Color de piel (1-${faces.skin.mask + 1})", old.skin)
-        val hair = numberField(box, "ID de pelo (0-${faces.hair.mask})", old.hair)
-        box.addView(label("Relinkeo: elige \"Normal\" y el número de la cara que quieres cargar."))
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("${Players.name(of, id)} (ID $id)")
-            .setView(box)
-            .setPositiveButton("Aceptar", null)
-            .setNegativeButton("Cancelar", null)
-            .create()
-        dialog.setOnShowListener {
-            if (readOnly) dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val n = parseIn(number, 1..faces.face.mask + 1) ?: return@setOnClickListener
-                val s = parseIn(skin, 1..faces.skin.mask + 1) ?: return@setOnClickListener
-                val hr = parseIn(hair, 0..faces.hair.mask) ?: return@setOnClickListener
-                val t = if (old.type > 2 && type.selectedItemPosition == 0) old.type else type.selectedItemPosition
-                val nf = Face(t, n, s, hr)
-                if (nf != old) {
-                    faces.write(of, id, nf)
-                    markDirty()
-                    refreshList()
-                    after()
-                }
-                dialog.dismiss()
-            }
-        }
-        dialog.show()
+        PlayerEditor(this, id) {
+            refreshList()
+            after()
+        }.show()
     }
 
     // ---------------------------------------------------------------- CSV de caras
 
     private fun exportFacesCsv() {
         val text = FaceTools.exportCsv(requireOf(), faces)
-        pendingWrite = { uri -> if (writeTo(uri, text.toByteArray(Charsets.UTF_8))) toast("Caras exportadas") }
-        createCsv.launch("caras_pes5.csv")
+        pendingWrite = { uri -> if (writeTo(uri, text.toByteArray(Charsets.UTF_8))) toast("FACE y HAIR exportados") }
+        createCsv.launch("face_hair_pes5.csv")
     }
 
     private fun importFacesCsv(uri: Uri) {
@@ -477,13 +455,13 @@ class MainActivity : AppCompatActivity() {
                 r.errors.take(20).forEach { msg.append('\n').append(it) }
                 if (r.errors.size > 20) msg.append("\n…")
             }
-            info("Importar caras", msg.toString())
+            info("Importar FACE y HAIR", msg.toString())
         } catch (e: Exception) {
             error("No se pudo leer el CSV: ${e.message}")
         }
     }
 
-    // ---------------------------------------------------------------- quitar caras especiales
+    // ---------------------------------------------------------------- quitar FACE especiales
 
     private fun removeSpecialDialog() {
         val of = requireOf()
@@ -502,8 +480,8 @@ class MainActivity : AppCompatActivity() {
         val map = FaceMapStore.load(this)
         val specials = faces.specialFaces(of)
         val known = specials.count { map.get(it.skin, it.number) != null }
-        box.addView(label("Se usa la tabla de equivalencias: $known de ${specials.size} caras especiales tienen su copia normal. " +
-            "Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Tabla de equivalencias de caras\"."))
+        box.addView(label("Se usa la tabla de equivalencias: $known de ${specials.size} FACE especiales tienen su copia normal. " +
+            "Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Tabla de equivalencias de FACE\"."))
         val separate = CheckBox(this).apply {
             text = "Guardar en un option file aparte (el abierto no cambia)"
             isChecked = true
@@ -511,7 +489,7 @@ class MainActivity : AppCompatActivity() {
         box.addView(separate)
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Quitar caras especiales")
+            .setTitle("Quitar FACE especiales")
             .setView(box)
             .setPositiveButton("Aplicar", null)
             .setNegativeButton("Cancelar", null)
@@ -527,7 +505,7 @@ class MainActivity : AppCompatActivity() {
                     if (changes.none { it.changed }) {
                         showRemoveResult(changes, null)
                     } else {
-                        saveAs(copy, "Option file sin caras especiales guardado") { showRemoveResult(changes, "Guardado en un archivo aparte.") }
+                        saveAs(copy, "Option file sin FACE especiales guardado") { showRemoveResult(changes, "Guardado en un archivo aparte.") }
                     }
                 } else {
                     val changes = run(of)
@@ -543,18 +521,18 @@ class MainActivity : AppCompatActivity() {
     private fun showRemoveResult(changes: List<FaceTools.Change>, extra: String?) {
         val changed = changes.count { it.changed }
         val msg = buildString {
-            append("Jugadores con cara especial: ${changes.size}\n")
-            append("Pasados a cara normal: $changed\n")
+            append("Jugadores con FACE especial: ${changes.size}\n")
+            append("Pasados a FACE normal: $changed\n")
             if (changes.size > changed) append("Sin cambios (sin equivalencia): ${changes.size - changed}\n")
             if (extra != null && changed > 0) append('\n').append(extra)
         }
-        val b = AlertDialog.Builder(this).setTitle("Quitar caras especiales").setMessage(msg)
+        val b = AlertDialog.Builder(this).setTitle("Quitar FACE especiales").setMessage(msg)
             .setPositiveButton("Cerrar", null)
         if (changes.isNotEmpty()) {
             b.setNeutralButton("Guardar informe CSV") { _, _ ->
                 val text = FaceTools.report(changes)
                 pendingWrite = { uri -> if (writeTo(uri, text.toByteArray(Charsets.UTF_8))) toast("Informe guardado") }
-                createCsv.launch("informe_caras_especiales.csv")
+                createCsv.launch("informe_face_especiales.csv")
             }
         }
         b.show()

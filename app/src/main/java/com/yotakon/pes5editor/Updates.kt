@@ -17,6 +17,8 @@ import java.net.URL
 object Updates {
     private const val API = "https://api.github.com/repos/Yotakon/PES-5-XBOX-Editor-ANDROID/releases/tags/ultima-app-editor"
     private const val APK = "https://github.com/Yotakon/PES-5-XBOX-Editor-ANDROID/releases/download/ultima-app-editor/PES5XboxEditor.apk"
+    /** Archivo pequeño que se publica junto al APK: {"versionCode": N}. No depende de la API de GitHub. */
+    private const val VERSION_JSON = "https://github.com/Yotakon/PES-5-XBOX-Editor-ANDROID/releases/download/ultima-app-editor/version.json"
     private const val PREFS = "actualizaciones"
 
     data class Release(val versionCode: Int, val date: String)
@@ -28,15 +30,43 @@ object Updates {
         return Release(code, o.optString("published_at").take(10))
     }
 
-    private fun fetch(): Release? {
-        val c = URL(API).openConnection() as HttpURLConnection
-        c.connectTimeout = 10000
-        c.readTimeout = 10000
-        c.setRequestProperty("Accept", "application/vnd.github+json")
-        return try {
-            if (c.responseCode != 200) null else parse(c.inputStream.bufferedReader().readText())
-        } finally {
-            c.disconnect()
+    private fun get(url: String, accept: String): String {
+        var u = URL(url)
+        // Sigue las redirecciones a mano (la descarga de GitHub redirige a otro servidor)
+        repeat(5) {
+            val c = u.openConnection() as HttpURLConnection
+            c.connectTimeout = 15000
+            c.readTimeout = 15000
+            c.instanceFollowRedirects = false
+            c.setRequestProperty("Accept", accept)
+            c.setRequestProperty("User-Agent", "PES5XboxEditor/${BuildConfig.VERSION_NAME} (Android)")
+            try {
+                val code = c.responseCode
+                if (code in 300..399) {
+                    u = URL(u, c.getHeaderField("Location") ?: throw Exception("redirección sin destino"))
+                    return@repeat
+                }
+                if (code != 200) throw Exception("el servidor respondió $code")
+                return c.inputStream.bufferedReader().readText()
+            } finally {
+                c.disconnect()
+            }
+        }
+        throw Exception("demasiadas redirecciones")
+    }
+
+    /** Primero el version.json de la release; si falla, la API de GitHub. Lanza la causa si fallan los dos. */
+    private fun fetch(): Release {
+        val first = try {
+            val o = JSONObject(get(VERSION_JSON, "application/json"))
+            return Release(o.getInt("versionCode"), o.optString("date"))
+        } catch (e: Exception) {
+            e
+        }
+        try {
+            return parse(get(API, "application/vnd.github+json")) ?: throw Exception("la release no indica el versionCode")
+        } catch (e: Exception) {
+            throw Exception("${first.message}; ${e.message}")
         }
     }
 
@@ -50,13 +80,15 @@ object Updates {
         if (quiet && now - prefs.getLong("ultima", 0) < 24 * 3600 * 1000L) return
         val main = Handler(Looper.getMainLooper())
         Thread {
-            val r = try { fetch() } catch (e: Exception) { null }
+            var why = ""
+            val r = try { fetch() } catch (e: Exception) { why = "${e.javaClass.simpleName}: ${e.message}"; null }
             main.post {
                 if (act.isFinishing) return@post
                 if (r != null) prefs.edit().putLong("ultima", now).apply()
                 val installed = BuildConfig.VERSION_CODE
                 when {
-                    r == null -> if (!quiet) act.showError("No se pudo comprobar si hay actualizaciones. Revisa la conexión a internet.")
+                    r == null -> if (!quiet) act.showError("No se pudo comprobar si hay actualizaciones.\n\nDetalle: $why\n\n" +
+                        "Puedes descargar la última versión desde:\n$APK")
                     r.versionCode > installed -> AlertDialog.Builder(act)
                         .setTitle("Hay una versión nueva")
                         .setMessage("Versión instalada: ${BuildConfig.VERSION_NAME} ($installed)\n" +

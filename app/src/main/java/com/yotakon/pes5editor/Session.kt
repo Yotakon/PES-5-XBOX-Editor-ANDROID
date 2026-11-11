@@ -19,7 +19,7 @@ object Session {
 object FaceSettings {
     private const val PREFS = "caras"
     val KEYS = listOf("tipoCara", "numeroCara", "piel", "pelo")
-    val LABELS = listOf("Tipo de cara", "Número de cara", "Color de piel", "Pelo")
+    val LABELS = listOf("Tipo de FACE", "Número de FACE", "Color de piel", "ID de HAIR")
 
     fun defaults(): List<String> {
         val d = FaceFields()

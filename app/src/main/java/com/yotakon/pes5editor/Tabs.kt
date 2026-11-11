@@ -31,6 +31,7 @@ import com.yotakon.pes5editor.core.Emblems
 import com.yotakon.pes5editor.core.FaceMap
 import com.yotakon.pes5editor.core.specialFaces
 import com.yotakon.pes5editor.core.IndexedImage
+import com.yotakon.pes5editor.core.Kits
 import com.yotakon.pes5editor.core.Logos
 import com.yotakon.pes5editor.core.Names
 import com.yotakon.pes5editor.core.OptionFile
@@ -189,7 +190,7 @@ class TransferTab(act: MainActivity) : EditorTab(act) {
     override val view: View = vbox(4).apply {
         addView(autoRelease)
         addView(label("Toca un jugador y después el hueco de destino (de la misma lista o de la otra). " +
-            "Mantén pulsado para liberar, cambiar dorsal o editar la cara.", small = true))
+            "Mantén pulsado para liberar, cambiar dorsal o editar el jugador.", small = true))
         val columns = LinearLayout(act).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
@@ -309,7 +310,7 @@ class TransferTab(act: MainActivity) : EditorTab(act) {
             val clubs = Transfers.clubsOf(of, id).joinToString { Teams.name(of, it) }.ifEmpty { "ninguno" }
             AlertDialog.Builder(act).setTitle(Players.name(of, id))
                 .setMessage("ID $id\nClub: $clubs")
-                .setPositiveButton("Editar cara y pelo") { _, _ -> act.openFaceEditor(id) { refresh() } }
+                .setPositiveButton("Editar jugador (FACE, HAIR…)") { _, _ -> act.openFaceEditor(id) { refresh() } }
                 .setNegativeButton("Cerrar", null)
                 .show()
             return
@@ -328,7 +329,7 @@ class TransferTab(act: MainActivity) : EditorTab(act) {
                     refresh()
                 }
             }
-            options += "Editar cara y pelo" to { act.openFaceEditor(id) { refresh() } }
+            options += "Editar jugador (FACE, HAIR…)" to { act.openFaceEditor(id) { refresh() } }
         }
         if (options.isEmpty()) return
         AlertDialog.Builder(act).setTitle(if (id != 0) Players.name(of, id) else "Hueco vacío")
@@ -351,6 +352,12 @@ class TeamsTab(act: MainActivity) : EditorTab(act) {
     private val emblem = Bitmaps.imageView(act, (96 * act.resources.displayMetrics.density).toInt())
     private val emblemText = label("")
     private var loading = false
+
+    // Uniforme: selecciones (0-63) y clubes (74-211)
+    private val kitTeams = (0 until Teams.COUNT).filter { Kits.hasKit(it) }
+    private val kitTeam = Spinner(act)
+    private val kitLogos = Array(Kits.LOGO_SLOTS) { Bitmaps.imageView(act, (48 * act.resources.displayMetrics.density).toInt()) }
+    private val kitLogoText = Array(Kits.LOGO_SLOTS) { TextView(act) }
 
     override val view: View = ScrollView(act).apply {
         val box = vbox(12)
@@ -380,6 +387,30 @@ class TeamsTab(act: MainActivity) : EditorTab(act) {
         box.addView(er)
         box.addView(Button(act).apply { text = "Guardar cambios del club"; setOnClickListener { save() } })
         box.addView(label("Los cambios se escriben en el option file abierto. Usa Guardar del menú para grabarlo.", small = true))
+
+        box.addView(TextView(act).apply {
+            text = "Uniforme"
+            textSize = 18f
+            setPadding(0, dp(20), 0, dp(4))
+        })
+        box.addView(label("Equipo del uniforme (selecciones y clubes)"))
+        box.addView(kitTeam)
+        box.addView(label("Logos del uniforme. Toca uno para cambiarlo. Los logos se cargan en la pestaña Escudos y logos.", small = true))
+        for (n in 0 until Kits.LOGO_SLOTS) {
+            box.addView(LinearLayout(act).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(4), 0, dp(4))
+                addView(kitLogos[n])
+                kitLogoText[n].setPadding(dp(12), 0, 0, 0)
+                addView(kitLogoText[n])
+                setOnClickListener { chooseKitLogo(n) }
+            })
+        }
+        box.addView(Button(act).apply { text = "Copiar uniforme de otro equipo de este archivo"; setOnClickListener { copyKit() } })
+        box.addView(Button(act).apply { text = "Importar uniforme desde otro option file"; setOnClickListener { importKit() } })
+        box.addView(label("PESFan Editor 5 no documenta los colores del uniforme por separado: se copia el uniforme completo " +
+            "de otro equipo o de otro option file, con sus logos y, en clubes, su escudo.", small = true))
         addView(box)
     }
 
@@ -395,7 +426,117 @@ class TeamsTab(act: MainActivity) : EditorTab(act) {
     }
 
     init {
-        onSelect(club) { if (!loading) load() }
+        onSelect(club) {
+            if (!loading) {
+                load()
+                val k = kitTeams.indexOf(clubIndex + 74)
+                if (k >= 0 && kitTeam.adapter != null) kitTeam.setSelection(k)
+            }
+        }
+        onSelect(kitTeam) { if (!loading) loadKit() }
+    }
+
+    private val kitIndex get() = kitTeams.getOrNull(kitTeam.selectedItemPosition) ?: -1
+
+    private fun loadKit() {
+        val t = kitIndex
+        if (t < 0 || Session.of == null) return
+        for (n in 0 until Kits.LOGO_SLOTS) {
+            val l = Kits.logo(of, t, n)
+            if (l != null && Logos.isUsed(of, l)) kitLogos[n].setImageBitmap(Bitmaps.of(Logos.image(of, l))) else kitLogos[n].setImageDrawable(null)
+            kitLogoText[n].text = "Logo ${n + 1}: " + (l?.let { "logo $it" } ?: "ninguno")
+        }
+    }
+
+    private fun chooseKitLogo(n: Int) {
+        if (!act.checkWritable()) return
+        val t = kitIndex
+        val used = (0 until Logos.COUNT).filter { Logos.isUsed(of, it) }
+        val size = dp(40)
+        val adapter = object : BaseAdapter() {
+            override fun getCount() = used.size + 1
+            override fun getItem(position: Int) = position
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+                val row = LinearLayout(act).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(16), dp(6), dp(16), dp(6))
+                }
+                val iv = Bitmaps.imageView(act, size)
+                val tv = TextView(act).apply { setPadding(dp(12), 0, 0, 0) }
+                if (position == 0) tv.text = "Sin logo" else {
+                    iv.setImageBitmap(Bitmaps.of(Logos.image(of, used[position - 1])))
+                    tv.text = "Logo ${used[position - 1]}"
+                }
+                row.addView(iv)
+                row.addView(tv)
+                return row
+            }
+        }
+        AlertDialog.Builder(act).setTitle(if (used.isEmpty()) "No hay logos cargados" else "Logo ${n + 1} del uniforme")
+            .setAdapter(adapter) { _, w ->
+                change { Kits.setLogo(of, t, n, if (w == 0) null else used[w - 1]) }
+                loadKit()
+            }.setNegativeButton("Cancelar", null).show()
+    }
+
+    private fun kitLabel(o: OptionFile, t: Int) = "$t - ${Teams.name(o, t)}"
+
+    private fun copyKit() {
+        if (!act.checkWritable()) return
+        val t = kitIndex
+        val sources = kitTeams.filter { it != t && (it >= 74) == (t >= 74) }
+        AlertDialog.Builder(act).setTitle("Copiar el uniforme de…")
+            .setItems(sources.map { kitLabel(of, it) }.toTypedArray()) { _, w ->
+                if (change { Kits.copy(of, sources[w], t) }) act.showToast("Uniforme copiado")
+                loadKit()
+            }.setNegativeButton("Cancelar", null).show()
+    }
+
+    private fun importKit() {
+        if (!act.checkWritable()) return
+        val t = kitIndex
+        act.pickBytes { bytes ->
+            val other = try {
+                OptionFile.readXsv(bytes, allowBadSignature = true)
+            } catch (e: OptionFileException) {
+                act.showError(e.message ?: "No es un option file válido"); return@pickBytes
+            }
+            val sources = kitTeams.filter { (it >= 74) == (t >= 74) }
+            val box = vbox(16)
+            box.addView(label("Equipo de origen"))
+            val src = spinner(sources.map { kitLabel(other, it) })
+            val pre = sources.indexOf(t)
+            if (pre >= 0) src.setSelection(pre)
+            box.addView(src)
+            val emblem = CheckBox(act).apply { text = "Importar también el escudo"; isChecked = true; isEnabled = t >= 74 }
+            val clubData = CheckBox(act).apply {
+                text = "Importar también nombre, abreviatura, colores y estadio del club"
+                isChecked = false
+                isEnabled = t >= 74
+            }
+            box.addView(emblem)
+            box.addView(clubData)
+            box.addView(label("Los logos del uniforme se copian a huecos de logo libres de tu archivo.", small = true))
+            AlertDialog.Builder(act).setTitle("Importar uniforme en ${Teams.name(of, t)}")
+                .setView(box)
+                .setPositiveButton("Importar") { _, _ ->
+                    var r: Kits.ImportResult? = null
+                    if (change { r = Kits.importFrom(of, t, other, sources[src.selectedItemPosition], emblem.isChecked && t >= 74, clubData.isChecked && t >= 74) }) {
+                        val res = r!!
+                        act.showInfo("Importar uniforme", buildString {
+                            append("Uniforme importado.\n")
+                            append("Logos copiados: ${res.logosCopied}\n")
+                            if (t >= 74) append("Escudo: " + (if (res.emblemCopied) "importado" else "sin cambios") + "\n")
+                            res.warnings.forEach { append("\n").append(it) }
+                        })
+                        onFileOpened()
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
     }
 
     private val clubIndex get() = club.selectedItemPosition
@@ -408,8 +549,12 @@ class TeamsTab(act: MainActivity) : EditorTab(act) {
         stadium.adapter = ArrayAdapter(act, android.R.layout.simple_spinner_dropdown_item,
             (0 until Names.STADIUM_COUNT).map { "$it - ${Names.stadium(of, it)}" })
         club.setSelection(sel.coerceAtMost(ClubData.COUNT - 1))
+        val kitSel = kitTeam.selectedItemPosition.takeIf { it >= 0 } ?: kitTeams.indexOf(sel + 74)
+        kitTeam.adapter = ArrayAdapter(act, android.R.layout.simple_spinner_dropdown_item, kitTeams.map { kitLabel(of, it) })
+        kitTeam.setSelection(kitSel.coerceIn(0, kitTeams.size - 1))
         loading = false
         load()
+        loadKit()
     }
 
     override fun refresh() {
@@ -694,7 +839,7 @@ class NamesTab(act: MainActivity) : EditorTab(act) {
 
 // ============================================================================ Tabla de equivalencias
 
-/** Lista de las caras especiales del option file con la cara normal que es su copia. */
+/** Lista de las FACE especiales del option file con la FACE normal que es su copia. */
 class FaceMapDialog(private val act: MainActivity) {
     private val of = act.requireOf()
     private val map = FaceMapStore.load(act)
@@ -710,8 +855,8 @@ class FaceMapDialog(private val act: MainActivity) {
             setPadding(dp(16), dp(8), dp(16), 0)
         }
         box.addView(TextView(act).apply {
-            text = "Las caras especiales se numeran por separado en cada color de piel. Toca una y escribe el número " +
-                "de la cara normal que es su copia (búscala en el editor del juego). Déjalo vacío para quitarla."
+            text = "Las FACE especiales se numeran por separado en cada color de piel. Toca una y escribe el número " +
+                "de la FACE normal que es su copia (búscala en el editor del juego). Déjalo vacío para quitarla."
         })
         box.addView(summary)
         val rv = RecyclerView(act).apply {
@@ -733,7 +878,7 @@ class FaceMapDialog(private val act: MainActivity) {
                     act.showToast("${m.size} equivalencias importadas")
                 }
             }
-            .setNegativeButton("Exportar CSV") { _, _ -> act.saveText("equivalencias_caras.csv", "\uFEFF" + map.serialize()) }
+            .setNegativeButton("Exportar CSV") { _, _ -> act.saveText("equivalencias_face.csv", "\uFEFF" + map.serialize()) }
             .show()
     }
 
@@ -753,7 +898,7 @@ class FaceMapDialog(private val act: MainActivity) {
                 setText(n?.toString() ?: "")
             }
             val b = LinearLayout(act).apply { setPadding(dp(16), dp(8), dp(16), 0); addView(e) }
-            AlertDialog.Builder(act).setTitle("Cara normal para ${Players.name(of, sf.players.first())}")
+            AlertDialog.Builder(act).setTitle("FACE normal para ${Players.name(of, sf.players.first())}")
                 .setView(b)
                 .setPositiveButton("Aceptar") { _, _ ->
                     val t = e.text.toString().trim()

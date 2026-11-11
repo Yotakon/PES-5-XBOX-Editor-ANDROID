@@ -192,3 +192,104 @@ class FaceMapTest {
         assertNull(back.get(1, 68))
     }
 }
+
+class PlayerFieldsTest {
+    private fun realSave(): OptionFile =
+        OptionFile.readXsv(javaClass.classLoader!!.getResourceAsStream("KONAMI-XBOX-PES5OPT.xsv")!!.readBytes())
+
+    @Test
+    fun readsRonaldinho() {
+        val of = realSave()
+        fun v(k: String) = PlayerFields.byKey(k).get(of, 999)
+        assertEquals("Brazil", PlayerFields.NATIONS[v("nation")])
+        assertEquals(25, v("age"))
+        assertEquals(181, v("height"))
+        assertEquals(80, v("weight"))
+        assertEquals("SS", PlayerFields.POSITIONS[v("regpos")])
+        assertEquals(97, v("dribacc"))
+        assertEquals(2, PlayerFields.footSide(of, 999)) // pie D / ambos lados
+        assertEquals("RONALDINHO", PlayerFields.shirtName(of, 999))
+        assertEquals(1068, v("hair"))
+    }
+
+    @Test
+    fun fieldsDoNotOverlapAndRoundTrip() {
+        val of = realSave()
+        // Cada campo se puede escribir sin cambiar ningún otro
+        for (f in PlayerFields.ALL) {
+            val before = PlayerFields.ALL.associate { it.key to it.get(of, 1000) }
+            val r = f.displayRange
+            val nv = if (f.get(of, 1000) == r.first) r.last else r.first
+            f.set(of, 1000, nv)
+            assertEquals(f.key, nv, f.get(of, 1000))
+            for (o in PlayerFields.ALL) if (o.key != f.key) assertEquals("${f.key} cambió ${o.key}", before[o.key], o.get(of, 1000))
+            f.set(of, 1000, before[f.key]!!)
+        }
+    }
+
+    @Test
+    fun nameAndShirt() {
+        val of = realSave()
+        PlayerFields.setName(of, 999, "Ronaldinho G.")
+        PlayerFields.setShirtName(of, 999, "r. gaúcho")
+        assertEquals("Ronaldinho G.", Players.name(of, 999))
+        assertEquals("R. GA CHO", PlayerFields.shirtName(of, 999))
+    }
+
+    /** Quitar FACE especiales solo toca los bits de tipo y número de FACE: el HAIR y su color no cambian. */
+    @Test
+    fun removeSpecialOnlyTouchesFaceBits() {
+        val of = realSave()
+        val before = of.data.copyOf()
+        FaceTools.removeSpecialWithMap(of, FaceFields(), Players.allIds, FaceMap.defaults())
+        val ff = FaceFields()
+        // bits permitidos: tipo (60,2,3) y número (53,3,0x1FF) de cada jugador
+        val allowed = HashSet<Int>()
+        for (id in Players.allIds) for (f in listOf(ff.type, ff.face)) {
+            val base = (Players.statAdr(id) + f.offset - 1) * 8 + f.shift
+            for (b in 0 until Integer.bitCount(f.mask)) allowed += base + b
+        }
+        for (i in before.indices) {
+            val x = (before[i].toInt() xor of.data[i].toInt()) and 0xFF
+            for (b in 0 until 8) if (x and (1 shl b) != 0) assertTrue("byte $i bit $b", (i * 8 + b) in allowed)
+        }
+        val hairColor = listOf("hair", "haircfg", "hairr", "hairg", "hairb").map { PlayerFields.byKey(it) }
+        val o = OptionFile.forTest(before.copyOf())
+        for (id in Players.allIds) for (h in hairColor) assertEquals(h.get(o, id), h.get(of, id))
+    }
+}
+
+class KitsTest {
+    private fun realSave(): OptionFile =
+        OptionFile.readXsv(javaClass.classLoader!!.getResourceAsStream("KONAMI-XBOX-PES5OPT.xsv")!!.readBytes())
+
+    @Test
+    fun importKitWithLogosAndEmblem() {
+        val src = realSave()
+        val logo = Quantizer.quantize(IntArray(32 * 32) { 0xFFAA0000.toInt() }, 32, 32, 16)
+        Logos.set(src, 3, logo)
+        Kits.setLogo(src, 74, 0, 3)
+        Kits.setLogo(src, 74, 1, 3)
+        val emb = Quantizer.quantize(IntArray(64 * 64) { 0xFF00AA00.toInt() }, 64, 64, 16)
+        ClubData.setEmblem(src, 0, Emblems.add(src, Emblems.Kind.C16, emb))
+
+        val dst = realSave()
+        Logos.set(dst, 0, logo) // hueco 0 ocupado: el logo debe ir a otro
+        val r = Kits.importFrom(dst, 80, src, 74, withEmblem = true, withClubData = false)
+        assertEquals(1, r.logosCopied)
+        val l = Kits.logo(dst, 80, 0)!!
+        assertEquals(l, Kits.logo(dst, 80, 1))
+        assertTrue(l != 0)
+        assertArrayEquals(logo.toArgb(), Logos.image(dst, l).toArgb())
+        assertTrue(r.emblemCopied)
+        assertEquals(0xFF00AA00.toInt(), Emblems.imageForValue(dst, ClubData.emblem(dst, 6))!!.toArgb()[0])
+        assertEquals("Arsenal", ClubData.name(src, 0))
+        assertTrue(ClubData.name(dst, 6) != "Arsenal")
+
+        try {
+            Kits.importFrom(dst, 5, src, 74, true, false)
+            fail()
+        } catch (e: OptionFileException) {
+        }
+    }
+}

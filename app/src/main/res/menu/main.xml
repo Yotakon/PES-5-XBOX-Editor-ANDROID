@@ -4,13 +4,13 @@
     <item android:id="@+id/action_save" android:title="Guardar" app:showAsAction="ifRoom" />
     <item android:id="@+id/action_open" android:title="Abrir otro option file" />
     <item android:id="@+id/action_save_as" android:title="Guardar como…" />
-    <item android:id="@+id/action_export_faces" android:title="Exportar caras a CSV…" />
-    <item android:id="@+id/action_import_faces" android:title="Importar caras desde CSV…" />
-    <item android:id="@+id/action_face_map" android:title="Tabla de equivalencias de caras…" />
-    <item android:id="@+id/action_remove_special" android:title="Quitar caras especiales…" />
+    <item android:id="@+id/action_export_faces" android:title="Exportar FACE y HAIR a CSV…" />
+    <item android:id="@+id/action_import_faces" android:title="Importar FACE y HAIR desde CSV…" />
+    <item android:id="@+id/action_face_map" android:title="Tabla de equivalencias de FACE…" />
+    <item android:id="@+id/action_remove_special" android:title="Quitar FACE especiales…" />
     <item android:id="@+id/action_export_team" android:title="Exportar este equipo…" />
     <item android:id="@+id/action_export_all" android:title="Exportar todos los equipos a una carpeta…" />
     <item android:id="@+id/action_import_team" android:title="Importar equipo…" />
     <item android:id="@+id/action_updates" android:title="Buscar actualizaciones" />
-    <item android:id="@+id/action_settings" android:title="Posiciones de los datos de cara" />
+    <item android:id="@+id/action_settings" android:title="Posiciones de los datos de FACE y HAIR" />
 </menu>
