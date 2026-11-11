@@ -19,6 +19,14 @@ APK de la última compilación de la rama `app-editor`:
 
 Al guardar, la app recalcula las sumas de control y la firma de Xbox.
 
+### Pestañas
+
+- **Jugadores**: lista por equipo con búsqueda; toca un jugador para editar su cara y pelo.
+- **Transferencias**: dos listas de equipos lado a lado. Toca un jugador y después el hueco de destino para moverlo o intercambiarlo. Si una lista es "Todos los jugadores", el jugador elegido se ficha en el hueco de la otra. Con la opción marcada, al fichar en un club se quita de su club anterior. Mantén pulsado un jugador para liberarlo, cambiar el dorsal o editar la cara.
+- **Equipos**: nombre, abreviatura, dos colores, estadio y escudo de cada club.
+- **Escudos y logos**: añadir, reemplazar, exportar a PNG y borrar escudos (64×64, de 128 o 16 colores) y los 80 logos (32×32, 16 colores). Cualquier imagen se ajusta al tamaño y se reduce a los colores necesarios.
+- **Estadios y ligas**: nombres de los 35 estadios y de las 28 ligas y copas.
+
 ### Relinkeo
 
 Poner a un jugador **cara normal** con el número de la cara que quieres es relinkearlo. Sin la marca de especial, el juego no le quita la cara al editarlo.
@@ -36,7 +44,7 @@ Poner a un jugador **cara normal** con el número de la cara que quieres es reli
 
 ## De dónde salen los datos
 
-- **Formato del `.xsv`, firma, sumas de control, plantillas, formaciones y clubes**: [PESFan Editor 5](https://github.com/PeterC10/PES5Editor).
+- **Formato del `.xsv`, sumas de control, plantillas, transferencias, formaciones, clubes, escudos, logos, estadios y ligas**: [PESFan Editor 5](https://github.com/PeterC10/PES5Editor). Además de las firmas de PES 5 y WE9 de PESFan, la app acepta la firma con clave cero.
 - **Campos de cara y pelo**: PESFan Editor no los edita. Salen de [PES5_WE9_LE_OF_Team_Editor](https://github.com/moth1995/PES5_WE9_LE_OF_Team_Editor) y todavía no se han comprobado en una partida de Xbox.
 
 | Campo | Posición, desplazamiento de bits, máscara |
@@ -52,4 +60,4 @@ GitHub Actions compila y prueba la app en cada push (`.github/workflows/android.
 
 ## Próxima fase
 
-Escudos y logos desde PNG, nombres, uniformes y colores de equipos, nombres de ligas e importar desde otro option file de Xbox.
+Uniformes de los equipos e importar desde otro option file de Xbox.

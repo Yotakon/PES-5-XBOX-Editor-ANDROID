@@ -1,6 +1,7 @@
 package com.yotakon.pes5editor
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
@@ -29,6 +30,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.tabs.TabLayout
 import com.yotakon.pes5editor.core.BadSignatureException
 import com.yotakon.pes5editor.core.Face
 import com.yotakon.pes5editor.core.FaceFields
@@ -50,7 +52,23 @@ class MainActivity : AppCompatActivity() {
     private lateinit var search: EditText
     private val adapter = PlayerAdapter()
 
-    private lateinit var faces: FaceFields
+    lateinit var faces: FaceFields
+        private set
+
+    private lateinit var tabLayout: TabLayout
+    private lateinit var tabViews: List<View>
+    private lateinit var tabs: List<EditorTab?>
+
+    // Imagen pedida por una pestaña
+    private var pendingImage: ((Uri) -> Unit)? = null
+    private val openImage = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val cb = pendingImage
+        pendingImage = null
+        if (uri != null && cb != null) cb(uri)
+    }
+    private val createPng = registerForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri ->
+        runPendingWrite(uri)
+    }
 
     /** Índice del desplegable que significa "todos los jugadores". */
     private val allPlayersIndex = Teams.COUNT
@@ -89,6 +107,22 @@ class MainActivity : AppCompatActivity() {
         val list = findViewById<RecyclerView>(R.id.players)
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
+
+        tabLayout = findViewById(R.id.tabs)
+        val content = findViewById<android.widget.FrameLayout>(R.id.content)
+        val created = listOf(TransferTab(this), TeamsTab(this), ImagesTab(this), NamesTab(this))
+        created.forEach { content.addView(it.view) }
+        tabs = listOf<EditorTab?>(null) + created
+        tabViews = listOf<View>(findViewById(R.id.tabPlayers)) + created.map { it.view }
+        listOf("Jugadores", "Transferencias", "Equipos", "Escudos y logos", "Estadios y ligas").forEach {
+            tabLayout.addTab(tabLayout.newTab().setText(it))
+        }
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) = showTab(tab.position)
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
+        showTab(0)
 
         openButton.setOnClickListener { askOpen() }
         teamSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -144,7 +178,48 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private fun requireOf(): OptionFile = Session.of!!
+    fun requireOf(): OptionFile = Session.of!!
+
+    private fun showTab(i: Int) {
+        tabViews.forEachIndexed { k, v -> v.visibility = if (k == i) View.VISIBLE else View.GONE }
+        if (Session.of != null) {
+            if (i == 0) refreshList() else tabs[i]?.refresh()
+        }
+    }
+
+    /** Vuelve a cargar la pestaña visible (por ejemplo, tras importar algo). */
+    fun refreshCurrentTab() = showTab(tabLayout.selectedTabPosition.coerceAtLeast(0))
+
+    /** Avisa y devuelve false si el archivo está en solo lectura. */
+    fun checkWritable(): Boolean {
+        if (readOnly) {
+            toast("Archivo en solo lectura: no se puede modificar")
+            return false
+        }
+        return true
+    }
+
+    fun pickImage(cb: (Uri) -> Unit) {
+        pendingImage = cb
+        openImage.launch(arrayOf("image/*"))
+    }
+
+    fun readImage(uri: Uri): Bitmap =
+        contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it) }
+            ?: throw Exception("no es una imagen")
+
+    fun savePng(name: String, bmp: Bitmap) {
+        val bo = java.io.ByteArrayOutputStream()
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, bo)
+        val bytes = bo.toByteArray()
+        pendingWrite = { uri -> if (writeTo(uri, bytes)) toast("Imagen guardada") }
+        createPng.launch(name)
+    }
+
+    fun showError(msg: String) = error(msg)
+    fun showInfo(title: String, msg: String) = info(title, msg)
+    fun showToast(msg: String) = toast(msg)
+    fun openFaceEditor(id: Int, after: () -> Unit) = editFaceDialog(id, after)
 
     // ---------------------------------------------------------------- abrir / guardar
 
@@ -171,6 +246,8 @@ class MainActivity : AppCompatActivity() {
             setupTeams()
             showState()
             invalidateOptionsMenu()
+            tabs.forEach { it?.onFileOpened() }
+            refreshCurrentTab()
         } catch (e: BadSignatureException) {
             AlertDialog.Builder(this)
                 .setTitle("Firma desconocida")
@@ -269,7 +346,7 @@ class MainActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun markDirty() {
+    fun markDirty() {
         Session.dirty = true
         showState()
     }
@@ -308,7 +385,7 @@ class MainActivity : AppCompatActivity() {
 
     // ---------------------------------------------------------------- editar cara
 
-    private fun editFaceDialog(id: Int) {
+    private fun editFaceDialog(id: Int, after: () -> Unit = {}) {
         val of = requireOf()
         val old = faces.read(of, id)
         val box = verticalBox()
@@ -341,6 +418,7 @@ class MainActivity : AppCompatActivity() {
                     faces.write(of, id, nf)
                     markDirty()
                     refreshList()
+                    after()
                 }
                 dialog.dismiss()
             }
@@ -526,6 +604,7 @@ class MainActivity : AppCompatActivity() {
                     markDirty()
                     setupTeams()
                     teamSpinner.setSelection(t)
+                    tabs.forEach { it?.onFileOpened() }
                     toast("Equipo importado. Recuerda guardar.")
                 } catch (e: OptionFileException) {
                     error(e.message ?: "No se pudo importar")
