@@ -66,7 +66,7 @@
 1;65;123;alta (textura casi igual);1704;2081;Luque
 1;66;124;alta (textura casi igual);1705;2082;Fernando Torres
 1;67;125;por orden (textura parecida);1706;2083;Raúl Bravo
-1;68;126;comprobada en el juego;1707;2084;Víctor Valdés
+1;68;126;alta (textura casi igual);1707;2084;Víctor Valdés
 1;69;127;alta (textura casi igual);1708;2085;Cesc Fabregas
 1;70;130;por orden (textura parecida);1709;2088;Zidane
 1;71;132;por orden (textura parecida);1710;2090;Barthez
@@ -147,7 +147,7 @@
 1;146;250;por orden (textura parecida);1785;2208;Dejan Stankovic
 2;1;4;por orden (textura parecida);1786;2227;Battaglia
 2;2;5;alta (textura casi igual);1787;2228;D'alessandro
-2;3;9;comprobada en el juego;1788;2232;Kaka'
+2;3;9;alta (textura casi igual);1788;2232;Kaka'
 2;4;10;alta (textura casi igual);1789;2233;Motta
 2;5;11;por orden (textura parecida);1790;2234;H. Yakin
 2;6;15;por orden (textura parecida);1791;2238;Reyes
@@ -184,12 +184,15 @@
 2;37;78;por orden (textura parecida);1822;2301;Nakazawa
 2;38;81;por orden (textura parecida);1823;2304;Tanaka
 2;39;82;alta (textura casi igual);1824;2305;Nakamura, Nakamura
+2;40;83;por orden y forma del modelo (sin jugador);1825;2306;(sin asignar)
 2;41;84;por orden (textura parecida);1826;2307;(sin asignar)
+2;42;87;por orden y forma del modelo (sin jugador);1827;2310;(sin asignar)
 2;43;90;por orden (textura parecida);1828;2313;(sin asignar)
 2;44;92;alta (textura casi igual);1829;2315;Tsuboi
 2;45;93;por orden (textura parecida);1830;2316;Endo
 2;46;96;por orden (textura parecida);1831;2319;(sin asignar)
 2;47;98;por orden (textura parecida);1832;2321;(sin asignar)
+2;48;99;por orden y forma del modelo (sin jugador);1833;2322;(sin asignar)
 2;49;100;por orden (textura parecida);1834;2323;(sin asignar)
 2;50;101;alta (textura casi igual);1835;2324;Doi
 2;51;102;por orden (textura parecida);1836;2325;Miura
@@ -201,17 +204,23 @@
 2;57;108;por orden (textura parecida);1842;2331;(sin asignar)
 2;58;109;por orden (textura parecida);1843;2332;(sin asignar)
 2;59;110;alta (textura casi igual);1844;2333;Motoyama
+2;60;112;por orden y forma del modelo (sin jugador);1845;2335;(sin asignar)
 2;61;113;alta (textura casi igual);1846;2336;Tamada
 2;62;114;por orden (textura parecida);1847;2337;(sin asignar)
+2;63;115;por orden y forma del modelo (sin jugador);1848;2338;(sin asignar)
 2;64;116;por orden (textura parecida);1849;2339;(sin asignar)
+2;65;117;por orden y forma del modelo (sin jugador);1850;2340;(sin asignar)
 2;66;118;por orden (textura parecida);1851;2341;(sin asignar)
 2;67;119;por orden (textura parecida);1852;2342;(sin asignar)
 2;68;120;alta (textura casi igual);1853;2343;(sin asignar)
+2;69;121;por orden y forma del modelo (sin jugador);1854;2344;(sin asignar)
 2;70;122;por orden (textura parecida);1855;2345;(sin asignar)
 2;71;123;por orden (textura parecida);1856;2346;(sin asignar)
 2;72;124;por orden (textura parecida);1857;2347;(sin asignar)
+2;73;125;por orden y forma del modelo (sin jugador);1858;2348;(sin asignar)
 2;74;126;por orden (textura parecida);1859;2349;(sin asignar)
 2;75;127;por orden (textura parecida);1860;2350;(sin asignar)
+2;76;128;por orden y forma del modelo (sin jugador);1861;2351;(sin asignar)
 2;77;129;por orden (textura parecida);1862;2352;(sin asignar)
 2;78;130;por orden (textura parecida);1863;2353;(sin asignar)
 2;79;131;por orden (textura parecida);1864;2354;(sin asignar)
@@ -221,12 +230,12 @@
 2;83;135;por orden (textura parecida);1868;2358;Oguro
 2;84;137;por orden (textura parecida);1869;2360;(sin asignar)
 3;1;1;por orden (textura parecida);1608;1902;Verón
-3;2;3;comprobada en el juego;1609;1904;Ronaldo
+3;2;3;alta (textura casi igual);1609;1904;Ronaldo
 3;3;4;por orden (textura parecida);1610;1905;(sin asignar)
 3;4;5;por orden (textura parecida);1611;1906;Cafu
 3;5;6;por orden (textura parecida);1612;1907;Emerson
 3;6;7;alta (textura casi igual);1613;1908;Roberto Carlos
-3;7;9;comprobada en el juego;1614;1910;Ronaldinho
+3;7;9;alta (textura casi igual);1614;1910;Ronaldinho
 3;8;12;alta (textura casi igual);1615;1913;Adriano
 3;9;14;por orden (textura parecida);1616;1915;Serginho
 3;10;19;alta (textura casi igual);1617;1920;Dida
@@ -252,7 +261,7 @@
 3;30;50;alta (textura casi igual);1637;1951;Diouf
 3;31;51;alta (textura casi igual);1638;1952;Larsson
 3;32;54;por orden (textura parecida);1639;1955;Santos
-4;1;2;comprobada en el juego;1590;1871;Drogba
+4;1;2;alta (textura casi igual);1590;1871;Drogba
 4;2;3;alta (textura casi igual);1591;1872;Toure
 4;3;5;alta (textura casi igual);1592;1874;Geremi
 4;4;6;alta (textura casi igual);1593;1875;Eto'o

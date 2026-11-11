@@ -50,6 +50,21 @@ object Players {
 
     fun statAdr(id: Int) = recordAdr(id) + 48
 
+    /**
+     * Nombres de los jugadores que el option file deja vacíos: el juego los toma de su tabla WEPLDATA
+     * (archivo 31 del 0_text.afs de PES 5 Xbox). Se incluyen en la app.
+     */
+    val REAL_NAMES: Map<Int, String> by lazy {
+        val text = Players::class.java.classLoader?.getResourceAsStream("nombres_reales.csv")
+            ?.use { String(it.readBytes(), Charsets.UTF_8) } ?: return@lazy emptyMap()
+        text.lines().drop(1).mapNotNull { l ->
+            val p = l.split(';')
+            val id = p.getOrNull(0)?.toIntOrNull()
+            val n = p.getOrNull(1)?.trim().orEmpty()
+            if (id != null && n.isNotEmpty()) id to n else null
+        }.toMap()
+    }
+
     val allIds: IntArray by lazy {
         IntArray(4999 + EDITED_COUNT) { if (it < 4999) it + 1 else FIRST_EDITED + (it - 4999) }
     }
@@ -63,6 +78,7 @@ object Players {
         val n = String(of.data, a, len, Charsets.UTF_16LE)
         return when {
             n.isNotEmpty() -> n
+            id in REAL_NAMES -> REAL_NAMES.getValue(id)
             id > 4999 -> "<Editado ${id - FIRST_EDITED}>"
             id > 4895 -> "<Sin usar $id>"
             else -> "<L $id>"

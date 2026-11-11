@@ -481,7 +481,7 @@ class MainActivity : AppCompatActivity() {
         val specials = faces.specialFaces(of)
         val known = specials.count { map.get(it.skin, it.number) != null }
         box.addView(label("Se usa la tabla de equivalencias: $known de ${specials.size} FACE especiales tienen su copia normal. " +
-            "Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Tabla de equivalencias de FACE\"."))
+            "Los jugadores sin equivalencia no se tocan. La tabla se edita en el menú \"Equivalencias de FACE\"."))
         val separate = CheckBox(this).apply {
             text = "Guardar en un option file aparte (el abierto no cambia)"
             isChecked = true

@@ -1,0 +1,7 @@
+﻿ARCHIVOS;CANTIDAD;CONTENIDO;CÓMO SE ELIGE EN LA PARTIDA
+1590-1869;280;FACE especiales (piel 4: 18, piel 3: 32, piel 1: 146, piel 2: 84);FACE especial + piel + número
+1870-2362;493;FACE normales (piel 4: 32, piel 3: 57, piel 1: 265, piel 2: 139);FACE normal + piel + número
+2829-3872;1044;HAIR normales: solo modelo, el juego lo tiñe con el color del jugador;ID de HAIR 0-1043
+3873-4128;256;HAIR con modelo y textura propia, casi iguales a los especiales; sin confirmar qué ID los carga;?
+4129-4148;20;Modelos de HAIR sin textura; sin confirmar;?
+4149-4428;280;HAIR especiales con textura propia, uno por FACE especial (mismo orden);ID de HAIR 1044-1323
