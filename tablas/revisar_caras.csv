@@ -139,48 +139,48 @@
 1;144;245;baja;1847;sí;no;Mihajlovic
 1;145;248;baja;99;sí;no;Kezman
 1;146;250;media;61;sí;sí;Dejan Stankovic
-2;1;7;baja;155;sí;no;Battaglia (pendiente: falta confirmar el inicio de la piel 2)
-2;2;8;alta;10;sí;no;D'alessandro (pendiente: falta confirmar el inicio de la piel 2)
-2;3;12;alta;7;sí;no;Kaka' (pendiente: falta confirmar el inicio de la piel 2)
-2;4;13;alta;0;sí;no;Motta (pendiente: falta confirmar el inicio de la piel 2)
-2;5;14;media;71;sí;no;H. Yakin (pendiente: falta confirmar el inicio de la piel 2)
-2;6;18;media;45;sí;no;Reyes (pendiente: falta confirmar el inicio de la piel 2)
-2;7;19;media;63;sí;no;Silvestre (pendiente: falta confirmar el inicio de la piel 2)
-2;8;20;alta;6;sí;no;Dellas (pendiente: falta confirmar el inicio de la piel 2)
-2;9;21;baja;1919;sí;no;Babic (pendiente: falta confirmar el inicio de la piel 2)
-2;10;23;baja;142;sí;no;Di Vaio (pendiente: falta confirmar el inicio de la piel 2)
-2;11;24;baja;580;sí;no;Camoranesi (pendiente: falta confirmar el inicio de la piel 2)
-2;12;26;baja;540;sí;no;Corradi (pendiente: falta confirmar el inicio de la piel 2)
-2;13;137;baja;2605;no;no;Márquez (pendiente: falta confirmar el inicio de la piel 2)
-2;14;44;media;52;sí;no;Pizzaro (pendiente: falta confirmar el inicio de la piel 2)
-2;15;45;alta;3;sí;no;C. Ronaldo (pendiente: falta confirmar el inicio de la piel 2)
-2;16;46;baja;1015;sí;no;Deco (pendiente: falta confirmar el inicio de la piel 2)
-2;17;47;baja;274;sí;no;Maniche (pendiente: falta confirmar el inicio de la piel 2)
-2;18;48;alta;0;sí;no;Paulo Ferreira (pendiente: falta confirmar el inicio de la piel 2)
-2;20;53;baja;222;sí;no;Emre Belözoglu (pendiente: falta confirmar el inicio de la piel 2)
-2;21;55;baja;404;sí;no;Recoba (pendiente: falta confirmar el inicio de la piel 2)
-2;22;58;baja;182;sí;no;Narazaki (pendiente: falta confirmar el inicio de la piel 2)
-2;24;137;baja;2401;no;no;K. Nakata; Koji Nakata (pendiente: falta confirmar el inicio de la piel 2)
-2;25;137;baja;1191;no;no;Miyamoto (pendiente: falta confirmar el inicio de la piel 2)
-2;26;62;baja;171;sí;no;Inamoto; Inamoto (pendiente: falta confirmar el inicio de la piel 2)
-2;27;63;media;44;sí;no;H. Nakata; Nakata (pendiente: falta confirmar el inicio de la piel 2)
-2;29;137;baja;1224;no;no;Kawaguchi (pendiente: falta confirmar el inicio de la piel 2)
-2;32;137;baja;1443;no;no;Fukunishi (pendiente: falta confirmar el inicio de la piel 2)
-2;33;75;baja;1029;sí;no;Ogasawara (pendiente: falta confirmar el inicio de la piel 2)
-2;35;78;baja;1292;sí;no;Suzuki (pendiente: falta confirmar el inicio de la piel 2)
-2;36;79;baja;458;sí;no;Yanagisawa (pendiente: falta confirmar el inicio de la piel 2)
-2;37;81;media;88;sí;no;Nakazawa (pendiente: falta confirmar el inicio de la piel 2)
-2;38;84;baja;154;sí;no;Tanaka (pendiente: falta confirmar el inicio de la piel 2)
-2;39;85;alta;0;sí;no;Nakamura; Nakamura (pendiente: falta confirmar el inicio de la piel 2)
-2;44;95;alta;17;sí;no;Tsuboi (pendiente: falta confirmar el inicio de la piel 2)
-2;45;96;baja;180;sí;no;Endo (pendiente: falta confirmar el inicio de la piel 2)
-2;50;104;alta;18;sí;no;Doi (pendiente: falta confirmar el inicio de la piel 2)
-2;51;105;baja;252;sí;no;Miura (pendiente: falta confirmar el inicio de la piel 2)
-2;52;106;baja;110;sí;no;Kaji (pendiente: falta confirmar el inicio de la piel 2)
-2;59;113;alta;1;sí;no;Motoyama (pendiente: falta confirmar el inicio de la piel 2)
-2;61;116;alta;22;sí;no;Tamada (pendiente: falta confirmar el inicio de la piel 2)
-2;81;136;alta;3;sí;no;Chano (pendiente: falta confirmar el inicio de la piel 2)
-2;83;138;baja;289;sí;no;Oguro (pendiente: falta confirmar el inicio de la piel 2)
+2;1;4;baja;155;sí;no;Battaglia
+2;2;5;alta;10;sí;sí;D'alessandro
+2;3;9;alta;7;sí;sí;Kaka'
+2;4;10;alta;0;sí;sí;Motta
+2;5;11;media;71;sí;sí;H. Yakin
+2;6;15;media;45;sí;sí;Reyes
+2;7;16;media;63;sí;sí;Silvestre
+2;8;17;alta;6;sí;sí;Dellas
+2;9;18;baja;1919;sí;no;Babic
+2;10;20;baja;142;sí;no;Di Vaio
+2;11;21;baja;580;sí;no;Camoranesi
+2;12;23;baja;540;sí;no;Corradi
+2;13;134;baja;2605;no;no;Márquez
+2;14;41;media;52;sí;sí;Pizzaro
+2;15;42;alta;3;sí;sí;C. Ronaldo
+2;16;43;baja;1015;sí;no;Deco
+2;17;44;baja;274;sí;no;Maniche
+2;18;45;alta;0;sí;sí;Paulo Ferreira
+2;20;50;baja;222;sí;no;Emre Belözoglu
+2;21;52;baja;404;sí;no;Recoba
+2;22;55;baja;182;sí;no;Narazaki
+2;24;134;baja;2401;no;no;K. Nakata; Koji Nakata
+2;25;134;baja;1191;no;no;Miyamoto
+2;26;59;baja;171;sí;no;Inamoto; Inamoto
+2;27;60;media;44;sí;sí;H. Nakata; Nakata
+2;29;134;baja;1224;no;no;Kawaguchi
+2;32;134;baja;1443;no;no;Fukunishi
+2;33;72;baja;1029;sí;no;Ogasawara
+2;35;75;baja;1292;sí;no;Suzuki
+2;36;76;baja;458;sí;no;Yanagisawa
+2;37;78;media;88;sí;sí;Nakazawa
+2;38;81;baja;154;sí;no;Tanaka
+2;39;82;alta;0;sí;sí;Nakamura; Nakamura
+2;44;92;alta;17;sí;sí;Tsuboi
+2;45;93;baja;180;sí;no;Endo
+2;50;101;alta;18;sí;sí;Doi
+2;51;102;baja;252;sí;no;Miura
+2;52;103;baja;110;sí;no;Kaji
+2;59;110;alta;1;sí;sí;Motoyama
+2;61;113;alta;22;sí;sí;Tamada
+2;81;133;alta;3;sí;sí;Chano
+2;83;135;baja;289;sí;no;Oguro
 3;1;1;baja;183;sí;no;Verón
 3;2;3;alta;29;sí;sí;Ronaldo
 3;4;5;media;75;sí;sí;Cafu
@@ -212,19 +212,19 @@
 3;30;50;alta;0;sí;sí;Diouf
 3;31;51;alta;0;sí;sí;Larsson
 3;32;54;media;74;sí;sí;Santos
-4;1;3;alta;14;sí;no;Drogba (pendiente: falta confirmar el inicio de la piel 4)
-4;2;4;alta;32;sí;no;Toure (pendiente: falta confirmar el inicio de la piel 4)
-4;3;6;alta;0;sí;no;Geremi (pendiente: falta confirmar el inicio de la piel 4)
-4;4;7;alta;22;sí;no;Eto'o (pendiente: falta confirmar el inicio de la piel 4)
-4;5;9;alta;4;sí;no;Heskey (pendiente: falta confirmar el inicio de la piel 4)
-4;6;11;alta;11;sí;no;Campbell (pendiente: falta confirmar el inicio de la piel 4)
-4;7;12;alta;4;sí;no;Defoe (pendiente: falta confirmar el inicio de la piel 4)
-4;8;13;alta;12;sí;no;Vieira (pendiente: falta confirmar el inicio de la piel 4)
-4;9;14;alta;40;sí;no;Wiltord (pendiente: falta confirmar el inicio de la piel 4)
-4;10;16;alta;9;sí;no;Thuram (pendiente: falta confirmar el inicio de la piel 4)
-4;11;17;baja;200;sí;no;Djibril Cisse (pendiente: falta confirmar el inicio de la piel 4)
-4;13;21;media;30;sí;no;Makelele (pendiente: falta confirmar el inicio de la piel 4)
-4;14;24;alta;19;sí;no;Martins (pendiente: falta confirmar el inicio de la piel 4)
-4;16;27;alta;0;sí;no;Kluivert (pendiente: falta confirmar el inicio de la piel 4)
-4;17;28;alta;24;sí;no;C. Seedorf (pendiente: falta confirmar el inicio de la piel 4)
-4;18;29;alta;13;sí;no;Castelen (pendiente: falta confirmar el inicio de la piel 4)
+4;1;2;alta;14;sí;sí;Drogba
+4;2;3;alta;32;sí;sí;Toure
+4;3;5;alta;0;sí;sí;Geremi
+4;4;6;alta;22;sí;sí;Eto'o
+4;5;8;alta;4;sí;sí;Heskey
+4;6;10;alta;11;sí;sí;Campbell
+4;7;11;alta;4;sí;sí;Defoe
+4;8;12;alta;12;sí;sí;Vieira
+4;9;13;alta;40;sí;sí;Wiltord
+4;10;15;alta;9;sí;sí;Thuram
+4;11;16;baja;200;sí;no;Djibril Cisse
+4;13;20;media;30;sí;sí;Makelele
+4;14;23;alta;19;sí;sí;Martins
+4;16;26;alta;0;sí;sí;Kluivert
+4;17;27;alta;24;sí;sí;C. Seedorf
+4;18;28;alta;13;sí;sí;Castelen

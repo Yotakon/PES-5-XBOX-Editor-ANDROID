@@ -166,8 +166,10 @@ class FaceMapTest {
         assertEquals(Face(FaceFields.NORMAL, 9, 3, 1068), ff.read(of, 999))       // Ronaldinho
         assertEquals(FaceFields.NORMAL, ff.read(of, 3753).type)                     // Víctor Valdés
         assertEquals(126, ff.read(of, 3753).number)
-        assertEquals(FaceFields.SPECIAL, ff.read(of, 195).type)                     // Henry: sin dato
-        assertEquals(3, ch.count { it.changed })
+        val kaka = Players.allIds.first { Players.name(of, it) == "Kaka'" }
+        assertEquals(Face(FaceFields.NORMAL, 9, 2, ff.read(of, kaka).hair), ff.read(of, kaka))
+        assertEquals(126, ch.count { it.changed })
+        assertTrue(ch.any { !it.changed })                                          // sin equivalencia: no se tocan
     }
 
     @Test
@@ -180,9 +182,10 @@ class FaceMapTest {
     @Test
     fun mapTextRoundTrip() {
         val m = FaceMap.defaults()
+        assertTrue(m.size > 100)
         m.set(2, 3, 50)
         val back = FaceMap.parse(m.serialize())
-        assertEquals(4, back.size)
+        assertEquals(m.size, back.size)
         assertEquals(50, back.get(2, 3))
         assertEquals(126, back.get(1, 68))
         back.set(1, 68, null)

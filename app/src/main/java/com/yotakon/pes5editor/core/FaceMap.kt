@@ -25,14 +25,22 @@ class FaceMap(entries: Map<Key, Int> = emptyMap()) {
     }
 
     companion object {
-        /** Datos comprobados por el usuario en el editor del juego. */
-        fun defaults() = FaceMap(
-            mapOf(
-                Key(1, 68) to 126, // Víctor Valdés
-                Key(3, 2) to 3,    // Ronaldo
-                Key(3, 7) to 9,    // Ronaldinho
-            )
-        )
+        /**
+         * Tabla sacada del 0_text.afs de PES 5 Xbox comparando la textura de cada cara especial con las
+         * normales de su misma piel. Comprobada en el juego con Valdés, Ronaldo, Ronaldinho, Kaká y Drogba.
+         */
+        fun defaults(): FaceMap {
+            val text = FaceMap::class.java.classLoader?.getResourceAsStream("equivalencias_caras.csv")
+                ?.use { String(it.readBytes(), Charsets.UTF_8) }
+            val m = if (text != null) parse(text) else FaceMap()
+            // Datos comprobados por el usuario (siempre presentes)
+            m.set(1, 68, 126) // Víctor Valdés
+            m.set(3, 2, 3)    // Ronaldo
+            m.set(3, 7, 9)    // Ronaldinho
+            m.set(2, 3, 9)    // Kaká
+            m.set(4, 1, 2)    // Drogba
+            return m
+        }
 
         /** Lee PIEL;ESPECIAL;NORMAL (separador ; o ,). Ignora la cabecera y las líneas no válidas. */
         fun parse(text: String): FaceMap {

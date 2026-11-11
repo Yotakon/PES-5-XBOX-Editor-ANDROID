@@ -51,8 +51,11 @@ object FaceMapStore {
     private const val KEY = "tabla"
 
     fun load(ctx: Context): FaceMap {
-        val t = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
-        return if (t == null) FaceMap.defaults() else FaceMap.parse(t)
+        // La tabla incluida en la app, con los cambios del usuario encima
+        val m = FaceMap.defaults()
+        val t = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null) ?: return m
+        for ((k, v) in FaceMap.parse(t).entries()) m.set(k.skin, k.special, v)
+        return m
     }
 
     fun save(ctx: Context, m: FaceMap) {
