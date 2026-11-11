@@ -95,6 +95,8 @@ object Teams {
         val ids = idsAdr(t)
         val nums = numsAdr(t)
         val form = formAdr(t)
+        // Tabla de orden dañada (valores fuera de 0..31): mejor no tocar esa plantilla
+        if ((0 until n).any { of.u8(form + it) >= 32 }) return
         val oldIds = of.data.copyOfRange(ids, ids + 64.coerceAtMost(n * 2))
         val oldNums = of.data.copyOfRange(nums, nums + n)
         val idsBuf = ByteArray(64).also { System.arraycopy(oldIds, 0, it, 0, oldIds.size) }
