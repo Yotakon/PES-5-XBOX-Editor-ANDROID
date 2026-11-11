@@ -29,6 +29,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.yotakon.pes5editor.core.BadSignatureException
 import com.yotakon.pes5editor.core.Face
 import com.yotakon.pes5editor.core.FaceFields
 import com.yotakon.pes5editor.core.FaceTools
@@ -119,7 +120,9 @@ class MainActivity : AppCompatActivity() {
         val open = Session.of != null
         for (i in 0 until menu.size()) {
             val item = menu.getItem(i)
-            item.isEnabled = open || item.itemId == R.id.action_open || item.itemId == R.id.action_settings
+            val writes = item.itemId in setOf(R.id.action_save, R.id.action_save_as, R.id.action_import_faces,
+                R.id.action_remove_special, R.id.action_import_team)
+            item.isEnabled = (open && !(writes && readOnly)) || item.itemId == R.id.action_open || item.itemId == R.id.action_settings
         }
         return super.onPrepareOptionsMenu(menu)
     }
@@ -157,10 +160,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadOptionFile(uri: Uri) {
+    private fun loadOptionFile(uri: Uri, allowBadSignature: Boolean = false) {
         try {
             val bytes = readAll(uri)
-            val of = OptionFile.readXsv(bytes)
+            val of = OptionFile.readXsv(bytes, allowBadSignature)
             Session.of = of
             Session.uri = uri
             Session.fileName = displayName(uri)
@@ -168,12 +171,22 @@ class MainActivity : AppCompatActivity() {
             setupTeams()
             showState()
             invalidateOptionsMenu()
+        } catch (e: BadSignatureException) {
+            AlertDialog.Builder(this)
+                .setTitle("Firma desconocida")
+                .setMessage(e.message + "\n\nPuedes abrirlo en solo lectura para ver jugadores y caras, " +
+                    "exportar CSV y exportar equipos. No se podrá guardar.")
+                .setPositiveButton("Abrir en solo lectura") { _, _ -> loadOptionFile(uri, true) }
+                .setNegativeButton("Cancelar", null)
+                .show()
         } catch (e: OptionFileException) {
             error(e.message ?: "No se pudo abrir")
         } catch (e: Exception) {
             error("No se pudo leer el archivo: ${e.message}")
         }
     }
+
+    private val readOnly get() = Session.of?.signatureOk == false
 
     private fun saveOverwrite() {
         val uri = Session.uri ?: return
@@ -231,7 +244,8 @@ class MainActivity : AppCompatActivity() {
             editor.visibility = View.GONE
             return
         }
-        status.text = "${Session.fileName} · ${of.game.label}" + if (Session.dirty) " · cambios sin guardar" else ""
+        status.text = "${Session.fileName} · " + (if (of.signatureOk) of.game.label else "SOLO LECTURA (firma desconocida)") +
+            if (Session.dirty) " · cambios sin guardar" else ""
         openButton.visibility = View.GONE
         editor.visibility = View.VISIBLE
         if (teamSpinner.adapter == null) setupTeams()
@@ -316,6 +330,7 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancelar", null)
             .create()
         dialog.setOnShowListener {
+            if (readOnly) dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val n = parseIn(number, 1..faces.face.mask + 1) ?: return@setOnClickListener
                 val s = parseIn(skin, 1..faces.skin.mask + 1) ?: return@setOnClickListener

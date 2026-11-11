@@ -18,13 +18,18 @@ class OptionFile private constructor(
     val data: ByteArray,
     private val gap: ByteArray,
     val game: Game,
+    /** false si la firma no coincide con ninguna clave conocida: se abre solo para consultar. */
+    val signatureOk: Boolean = true,
 ) {
     enum class Game(val label: String) { PES5("PES 5"), WE9U("Winning Eleven 9") }
 
     /** Copia independiente (para trabajar sin tocar el original). */
-    fun copy(): OptionFile = OptionFile(data.copyOf(), gap.copyOf(), game)
+    fun copy(): OptionFile = OptionFile(data.copyOf(), gap.copyOf(), game, signatureOk)
 
     fun toXsv(): ByteArray {
+        if (!signatureOk) {
+            throw OptionFileException("Este archivo se abrió en solo lectura porque su firma no coincide con las claves conocidas. No se puede guardar.")
+        }
         // Mismos indicadores que pone PESFan Editor al guardar
         data[45] = 1
         data[46] = 1
@@ -95,7 +100,7 @@ class OptionFile private constructor(
         }
 
         /** Lee un .xsv. Lanza [OptionFileException] si no es un option file de Xbox válido. */
-        fun readXsv(file: ByteArray): OptionFile {
+        fun readXsv(file: ByteArray, allowBadSignature: Boolean = false): OptionFile {
             if (file.size != FILE_SIZE) {
                 throw OptionFileException(
                     "El archivo mide ${file.size} bytes y un option file de PES5 Xbox mide $FILE_SIZE. " +
@@ -109,16 +114,18 @@ class OptionFile private constructor(
             }
             val body = file.copyOfRange(0, BODY_SIZE)
             val sig = file.copyOfRange(BODY_SIZE, FILE_SIZE)
+            var ok = true
             val game = when {
                 hmac(body, Game.PES5).contentEquals(sig) -> Game.PES5
                 hmac(body, Game.WE9U).contentEquals(sig) -> Game.WE9U
-                else -> throw OptionFileException("La firma del archivo no es válida: puede estar dañado o ser de otro juego.")
+                allowBadSignature -> { ok = false; Game.PES5 }
+                else -> throw BadSignatureException()
             }
             val data = ByteArray(LENGTH)
             System.arraycopy(file, 0, data, 0, HEAD)
             System.arraycopy(file, GAP_END, data, HEAD, LENGTH - HEAD)
             val gap = file.copyOfRange(HEAD, GAP_END)
-            val of = OptionFile(data, gap, game)
+            val of = OptionFile(data, gap, game, ok)
             Teams.fixAllFormations(of)
             return of
         }
@@ -135,4 +142,8 @@ class OptionFile private constructor(
     }
 }
 
-class OptionFileException(message: String) : Exception(message)
+open class OptionFileException(message: String) : Exception(message)
+
+class BadSignatureException : OptionFileException(
+    "La firma del archivo no coincide con las claves de PES 5 ni de Winning Eleven 9 que trae PESFan Editor."
+)

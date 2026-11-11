@@ -41,6 +41,19 @@ class CoreTest {
     }
 
     @Test
+    fun badSignatureOpensReadOnly() {
+        val file = randomOf(2).toXsv()
+        file[100] = (file[100] + 1).toByte()
+        val of = OptionFile.readXsv(file, allowBadSignature = true)
+        assertFalse(of.signatureOk)
+        try {
+            of.toXsv()
+            fail("no debía guardar")
+        } catch (e: OptionFileException) {
+        }
+    }
+
+    @Test
     fun wrongSizeIsRejected() {
         try {
             OptionFile.readXsv(ByteArray(1250304))
