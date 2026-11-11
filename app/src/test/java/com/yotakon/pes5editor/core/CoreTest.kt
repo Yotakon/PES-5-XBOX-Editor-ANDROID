@@ -29,6 +29,32 @@ class CoreTest {
     }
 
     @Test
+    fun zeroKeySignatureRoundTrip() {
+        val data = ByteArray(OptionFile.LENGTH)
+        Random(10).nextBytes(data)
+        val file = OptionFile.forTest(data, OptionFile.Game.ZERO_KEY).toXsv()
+        // La firma es HMAC-SHA1 con 16 bytes a cero sobre los 1261568 primeros bytes
+        val mac = javax.crypto.Mac.getInstance("HmacSHA1")
+        mac.init(javax.crypto.spec.SecretKeySpec(ByteArray(16), "HmacSHA1"))
+        assertArrayEquals(mac.doFinal(file.copyOfRange(0, OptionFile.BODY_SIZE)), file.copyOfRange(OptionFile.BODY_SIZE, OptionFile.FILE_SIZE))
+        val back = OptionFile.readXsv(file)
+        assertEquals(OptionFile.Game.ZERO_KEY, back.game)
+        assertTrue(back.signatureOk)
+    }
+
+    @Test
+    fun realSaveOpensAndResaves() {
+        val bytes = javaClass.classLoader!!.getResourceAsStream("KONAMI-XBOX-PES5OPT.xsv")!!.readBytes()
+        val of = OptionFile.readXsv(bytes)
+        assertEquals(OptionFile.Game.ZERO_KEY, of.game)
+        assertEquals("Ronaldinho", Players.name(of, 999))
+        assertEquals(Face(FaceFields.SPECIAL, 7, 3, 1068), FaceFields().read(of, 999))
+        val again = OptionFile.readXsv(of.toXsv())
+        assertEquals(OptionFile.Game.ZERO_KEY, again.game)
+        assertArrayEquals(of.data, again.data)
+    }
+
+    @Test
     fun badSignatureIsRejected() {
         val file = randomOf(2).toXsv()
         file[100] = (file[100] + 1).toByte()

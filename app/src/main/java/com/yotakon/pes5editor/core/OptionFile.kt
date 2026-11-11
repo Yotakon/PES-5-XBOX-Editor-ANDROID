@@ -21,7 +21,12 @@ class OptionFile private constructor(
     /** false si la firma no coincide con ninguna clave conocida: se abre solo para consultar. */
     val signatureOk: Boolean = true,
 ) {
-    enum class Game(val label: String) { PES5("PES 5"), WE9U("Winning Eleven 9") }
+    enum class Game(val label: String) {
+        PES5("PES 5"),
+        WE9U("Winning Eleven 9"),
+        /** Firma con clave de 16 ceros (XboxSignatureKey sin inicializar, como en algunos emuladores y recompilaciones). */
+        ZERO_KEY("PES 5 (firma con clave cero)"),
+    }
 
     /** Copia independiente (para trabajar sin tocar el original). */
     fun copy(): OptionFile = OptionFile(data.copyOf(), gap.copyOf(), game, signatureOk)
@@ -90,10 +95,16 @@ class OptionFile private constructor(
         private val KEY_PES5 = bytes(-14, -55, -125, -28, 82, 115, 125, -54, 84, -61, 101, -62, -110, -117, -91, -80)
         private val KEY_WE9U = bytes(-79, -72, -17, -123, 66, -96, -127, 116, -100, 63, 122, 58, -19, 116, -22, -15)
 
+        private val KEY_ZERO = ByteArray(16)
+
         private fun bytes(vararg v: Int) = ByteArray(v.size) { v[it].toByte() }
 
         private fun hmac(body: ByteArray, game: Game): ByteArray {
-            val key = if (game == Game.WE9U) KEY_WE9U else KEY_PES5
+            val key = when (game) {
+                Game.WE9U -> KEY_WE9U
+                Game.ZERO_KEY -> KEY_ZERO
+                else -> KEY_PES5
+            }
             val mac = Mac.getInstance("HmacSHA1")
             mac.init(SecretKeySpec(key, "HmacSHA1"))
             return mac.doFinal(body)
@@ -118,6 +129,7 @@ class OptionFile private constructor(
             val game = when {
                 hmac(body, Game.PES5).contentEquals(sig) -> Game.PES5
                 hmac(body, Game.WE9U).contentEquals(sig) -> Game.WE9U
+                hmac(body, Game.ZERO_KEY).contentEquals(sig) -> Game.ZERO_KEY
                 allowBadSignature -> { ok = false; Game.PES5 }
                 else -> throw BadSignatureException()
             }
@@ -131,13 +143,13 @@ class OptionFile private constructor(
         }
 
         /** Solo para pruebas: option file con los datos dados y firma PES5. */
-        internal fun forTest(data: ByteArray): OptionFile {
+        internal fun forTest(data: ByteArray, game: Game = Game.PES5): OptionFile {
             require(data.size == LENGTH)
             data[HEAD] = 0xD0.toByte()
             data[HEAD + 1] = 0x04
             data[HEAD + 2] = 0
             data[HEAD + 3] = 0
-            return OptionFile(data, ByteArray(GAP_END - HEAD), Game.PES5)
+            return OptionFile(data, ByteArray(GAP_END - HEAD), game)
         }
     }
 }
@@ -145,5 +157,5 @@ class OptionFile private constructor(
 open class OptionFileException(message: String) : Exception(message)
 
 class BadSignatureException : OptionFileException(
-    "La firma del archivo no coincide con las claves de PES 5 ni de Winning Eleven 9 que trae PESFan Editor."
+    "La firma del archivo no coincide con ninguna clave conocida (PES 5, Winning Eleven 9 ni clave cero)."
 )
