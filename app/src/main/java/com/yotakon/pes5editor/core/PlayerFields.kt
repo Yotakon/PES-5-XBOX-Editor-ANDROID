@@ -25,7 +25,7 @@ object PlayerFields {
             get() = when (kind) {
                 is Kind.Num -> {
                     val a = kind.add
-                    val b = kind.factor * field.mask + kind.add
+                    val b = kind.factor * this.field.mask + kind.add
                     minOf(a, b)..maxOf(a, b)
                 }
                 is Kind.Choice -> 0 until kind.labels.size
