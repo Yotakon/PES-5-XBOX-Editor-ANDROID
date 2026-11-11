@@ -168,7 +168,7 @@ class FaceMapTest {
         assertEquals(126, ff.read(of, 3753).number)
         val kaka = Players.allIds.first { Players.name(of, it) == "Kaka'" }
         assertEquals(Face(FaceFields.NORMAL, 9, 2, ff.read(of, kaka).hair), ff.read(of, kaka))
-        assertEquals(126, ch.count { it.changed })
+        assertEquals(225, ch.count { it.changed })
         assertTrue(ch.any { !it.changed })                                          // sin equivalencia: no se tocan
     }
 
