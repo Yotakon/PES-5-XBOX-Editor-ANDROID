@@ -1,0 +1,56 @@
+name: App Android
+
+on:
+  push:
+    branches: [main, app-editor]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Pruebas
+        run: gradle testDebugUnitTest --stacktrace
+
+      - name: Compilar APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Publicar APK (enlace directo)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ultima-${{ github.ref_name }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk PES5XboxEditor.apk
+          echo "{\"versionCode\": $((100 + GITHUB_RUN_NUMBER)), \"date\": \"$(date -u +%Y-%m-%d)\"}" > version.json
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh release create "$TAG" PES5XboxEditor.apk version.json \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "PES5 Xbox Editor (última compilación de ${{ github.ref_name }})" \
+            --notes "APK de prueba compilado automáticamente desde la rama ${{ github.ref_name }} ($GITHUB_SHA).
+
+          versionCode: $((100 + GITHUB_RUN_NUMBER))"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apk-y-reportes
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/reports/tests/
+          if-no-files-found: ignore
