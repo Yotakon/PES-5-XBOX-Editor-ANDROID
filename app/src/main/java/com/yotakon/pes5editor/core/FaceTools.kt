@@ -26,10 +26,12 @@ object FaceTools {
 
     fun exportCsv(of: OptionFile, ff: FaceFields): String = buildString {
         append('\uFEFF')
-        append("ID;NOMBRE;TIPO CARA;NUMERO CARA;PIEL;PELO;TIPO (texto)\r\n")
+        append("ID;NOMBRE;TIPO CARA;NUMERO CARA;PIEL;PELO;TIPO (texto);ARCHIVO FACE;ARCHIVO HAIR\r\n")
         for (id in Players.allIds) {
             val f = ff.read(of, id)
-            append("$id;${csv(Players.name(of, id))};${f.type};${f.number};${f.skin};${f.hair};${FaceFields.typeName(f.type)}\r\n")
+            val fa = Relink.faceFile(f)?.toString().orEmpty()
+            val ha = Relink.hairFile(f)?.toString().orEmpty()
+            append("$id;${csv(Players.name(of, id))};${f.type};${f.number};${f.skin};${f.hair};${FaceFields.typeName(f.type)};$fa;$ha\r\n")
         }
     }
 
@@ -39,8 +41,10 @@ object FaceTools {
     }
 
     /**
-     * Columnas: ID y cualquiera de TIPO CARA (0-2), NUMERO CARA (1-512), PIEL (1-4), PELO (0-2047).
-     * Separador ';' o ','. Celdas vacías = sin cambios.
+     * Columnas: ID y cualquiera de TIPO CARA (0-2), NUMERO CARA (1-512), PIEL (1-4), PELO (0-2047),
+     * ARCHIVO FACE (1590-2362) y ARCHIVO HAIR (2829-4876) del 0_text.afs.
+     * Los archivos se aplican después de las demás columnas y solo si cambian el archivo que se carga
+     * (ver [Relink.plan]). Separador ';' o ','. Celdas vacías = sin cambios.
      */
     fun importCsv(of: OptionFile, ff: FaceFields, text: String): ImportResult {
         val r = ImportResult()
@@ -60,6 +64,8 @@ object FaceTools {
         val cNum = cols.indexOf("NUMERO CARA")
         val cSkin = cols.indexOf("PIEL")
         val cHair = cols.indexOf("PELO")
+        val cFaceFile = cols.indexOf("ARCHIVO FACE")
+        val cHairFile = cols.indexOf("ARCHIVO HAIR")
         for (i in 1 until lines.size) {
             val line = lines[i]
             if (line.isBlank()) continue
@@ -81,12 +87,25 @@ object FaceTools {
                 }
                 return x
             }
-            val nf = Face(
+            var nf = Face(
                 num(cType, "TIPO CARA", 0..2, old.type),
                 num(cNum, "NUMERO CARA", 1..ff.face.mask + 1, old.number),
                 num(cSkin, "PIEL", 1..ff.skin.mask + 1, old.skin),
                 num(cHair, "PELO", 0..ff.hair.mask, old.hair),
             )
+            fun entry(c: Int, colName: String): Int? {
+                val s = cell(v, c)
+                if (s.isNullOrEmpty()) return null
+                return s.toIntOrNull() ?: run { r.errors += "Línea $lineNo: $colName no es un número"; null }
+            }
+            val faceEntry = entry(cFaceFile, "ARCHIVO FACE")
+            val hairEntry = entry(cHairFile, "ARCHIVO HAIR")
+            val faceChanges = faceEntry != null && faceEntry != Relink.faceFile(nf)
+            val hairChanges = hairEntry != null && hairEntry != Relink.hairFile(nf)
+            if (faceChanges || hairChanges) {
+                val p = Relink.relink(nf, faceEntry, hairEntry)
+                if (p.face == null) r.errors += "Línea $lineNo: ${p.error}" else nf = p.face
+            }
             if (nf != old) {
                 ff.write(of, id, nf)
                 r.changedPlayers++

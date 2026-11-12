@@ -1,10 +1,14 @@
 package com.yotakon.pes5editor
 
 import android.graphics.Typeface
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -12,6 +16,8 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import com.yotakon.pes5editor.core.Face
+import com.yotakon.pes5editor.core.FaceFields
 import com.yotakon.pes5editor.core.OptionFile
 import com.yotakon.pes5editor.core.OptionFileException
 import com.yotakon.pes5editor.core.PlayerFields
@@ -19,6 +25,7 @@ import com.yotakon.pes5editor.core.PlayerFields.Kind
 import com.yotakon.pes5editor.core.PlayerFields.PField
 import com.yotakon.pes5editor.core.PlayerFields.Section
 import com.yotakon.pes5editor.core.Players
+import com.yotakon.pes5editor.core.Relink
 
 /**
  * Editor completo de un jugador: datos, posiciones, habilidades, estilos, habilidades especiales,
@@ -47,6 +54,7 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
     private lateinit var nameEdit: EditText
     private lateinit var shirtEdit: EditText
     private lateinit var footSide: Spinner
+    private lateinit var loaded: TextView
 
     fun show() {
         val root = LinearLayout(act).apply {
@@ -83,7 +91,14 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
                 body.addView(footSide)
             }
             if (s == Section.FACE) {
-                body.addView(label("Relinkeo: elige \"Normal (predefinida)\" y el número de la FACE que quieres cargar.", small = true))
+                body.addView(label("Relinkeo: escribe el archivo de FACE y de HAIR del 0_text que quieres cargar. " +
+                    "La app calcula el tipo de FACE, el número y el ID de HAIR.", small = true))
+                loaded = label("", small = true)
+                body.addView(loaded)
+                body.addView(Button(act).apply {
+                    text = "Relinkear por archivo del 0_text"
+                    setOnClickListener { relinkDialog() }
+                })
             }
             if (s == Section.HAIR) {
                 body.addView(label("Con FACE especial el juego usa su propio HAIR. Al pasar a FACE normal se aplica " +
@@ -91,6 +106,8 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
             }
             for (f in fields.filter { it.section == s }) addControl(body, f)
         }
+
+        updateLoaded()
 
         val dialog = AlertDialog.Builder(act)
             .setTitle("${Players.name(of, id)} (ID $id)")
@@ -167,6 +184,125 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
                 null
             } else v
         }
+    }
+
+    // ---------------------------------------------------------------- relinkeo por archivo
+
+    private fun control(key: String) = controls.firstOrNull { it.f.key == key }
+
+    /** Valor que muestra ahora el control, sin marcar errores. */
+    private fun shown(key: String): Int? {
+        val c = control(key) ?: return null
+        return when (val v = c.view) {
+            is Spinner -> v.selectedItemPosition
+            is EditText -> v.text.toString().trim().toIntOrNull()?.takeIf { it in c.f.displayRange }
+            else -> null
+        }
+    }
+
+    /** FACE y HAIR con los valores que muestra ahora el editor. */
+    private fun shownFace(): Face? {
+        val type = shown("facetype") ?: return null
+        val number = shown("face") ?: return null
+        val skin = shown("skin") ?: return null
+        val hair = shown("hair") ?: return null
+        return Face(type, number, skin, hair)
+    }
+
+    private fun display(key: String, v: Int) {
+        when (val view = control(key)?.view) {
+            is Spinner -> view.setSelection(v)
+            is EditText -> { view.setText(v.toString()); view.error = null }
+        }
+    }
+
+    private fun updateLoaded() {
+        if (!::loaded.isInitialized) return
+        val f = shownFace()
+        loaded.text = if (f == null) "Carga ahora: revisa los valores de FACE y HAIR." else {
+            val face = Relink.faceFile(f)?.let { "FACE archivo $it" } ?: "FACE ${FaceFields.typeName(f.type).lowercase()}"
+            val hair = Relink.hairFile(f)?.let { "HAIR archivo $it" } ?: "HAIR desconocido"
+            "Carga ahora: $face · $hair"
+        }
+    }
+
+    private fun relinkDialog() {
+        val cur = shownFace()
+        if (cur == null) {
+            act.showError("Corrige primero el tipo de FACE, el número, la piel y el ID de HAIR.")
+            return
+        }
+        val box = LinearLayout(act).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+        }
+        box.addView(label("Números de archivo del 0_text.afs, contando desde 0 como GGS. Deja una casilla vacía para no cambiarla.", small = true))
+        fun entry(title: String, value: Int?): EditText {
+            box.addView(label(title))
+            return EditText(act).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                setText(value?.toString().orEmpty())
+                maxLines = 1
+                box.addView(this)
+            }
+        }
+        val faceE = entry("Archivo de FACE (${Relink.SPECIAL_FACES.first}-${Relink.SPECIAL_FACES.last} especiales, " +
+            "${Relink.NORMAL_FACES.first}-${Relink.NORMAL_FACES.last} normales)", Relink.faceFile(cur))
+        val hairE = entry("Archivo de HAIR (${Relink.HAIR_FILES.first}-${Relink.HAIR_FILES.last})", Relink.hairFile(cur))
+        box.addView(label("Color de piel (también cambia el color del cuerpo)"))
+        val skinS = spinner(Relink.SKIN_NAMES, cur.skin - 1)
+        box.addView(skinS)
+        val info = label("", small = true)
+        box.addView(info)
+
+        fun compute(): Relink.Result {
+            val fe = faceE.text.toString().trim().toIntOrNull()
+            val he = hairE.text.toString().trim().toIntOrNull()
+            return Relink.relink(cur, fe, he, skinS.selectedItemPosition + 1)
+        }
+
+        val dialog = AlertDialog.Builder(act)
+            .setTitle("Relinkear FACE y HAIR")
+            .setView(ScrollView(act).apply { addView(box) })
+            .setPositiveButton("Aplicar", null)
+            .setNegativeButton("Cancelar", null)
+            .create()
+
+        fun refresh() {
+            val r = compute()
+            val fe = faceE.text.toString().trim().toIntOrNull()
+            val skins = fe?.let { Relink.skinsFor(it) }.orEmpty()
+            val extra = if (fe != null && skins.isNotEmpty()) {
+                "\nPieles con las que se carga el archivo $fe: ${skins.joinToString { Relink.skinName(it) }}."
+            } else ""
+            info.text = (r.error ?: r.notes.joinToString("\n")) + extra
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = r.face != null
+        }
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: Editable?) = refresh()
+        }
+        faceE.addTextChangedListener(watcher)
+        hairE.addTextChangedListener(watcher)
+        skinS.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, idl: Long) = refresh()
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        dialog.setOnShowListener {
+            refresh()
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val f = compute().face ?: return@setOnClickListener
+                display("facetype", f.type)
+                display("skin", f.skin)
+                display("face", f.number)
+                display("hair", f.hair)
+                updateLoaded()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
     }
 
     private fun save(oldName: String, oldShirt: String, oldFoot: Int): Boolean {

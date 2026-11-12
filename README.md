@@ -33,13 +33,36 @@ Al guardar, la app recalcula las sumas de control y la firma de Xbox.
 - **Escudos y logos**: añadir, reemplazar, exportar a PNG y borrar escudos (64×64, de 128 o 16 colores) y los 80 logos (32×32, 16 colores). Cualquier imagen se ajusta al tamaño y se reduce a los colores necesarios.
 - **Estadios y ligas**: nombres de los 35 estadios y de las 28 ligas y copas.
 
-### Relinkeo
+### Relinkeo por archivo del 0_text
 
-Poner a un jugador **cara normal** con el número de la cara que quieres es relinkearlo. Sin la marca de especial, el juego no le quita la cara al editarlo.
+En el editor del jugador, el botón **Relinkear por archivo del 0_text** pide el número de archivo de FACE y de HAIR (contando desde 0, como GGS) y la piel. La app calcula el tipo de FACE, el número y el ID de HAIR que hacen que el juego cargue esos archivos. La lista de jugadores muestra qué archivos carga cada uno.
+
+Así elige el juego los archivos (tablas del `PES5.xbe` de Xbox, offsets `0x578E18` y `0x578A24`):
+
+| Tipo de FACE | Archivo de FACE | Archivo de HAIR |
+|---|---|---|
+| Especial | base especial de la piel + número - 1 | archivo de FACE + 2559 (no usa el ID de HAIR) |
+| Normal | base normal de la piel + número - 1 | 2829 + ID de HAIR |
+| Creada | se genera con los parámetros | 2829 + ID de HAIR |
+
+| Piel | Base especial | Base normal |
+|---|---|---|
+| 1 (W) | 1640 | 1959 |
+| 2 (Y) | 1786 | 2224 |
+| 3 (R) | 1608 | 1902 |
+| 4 (K) | 1590 | 1870 |
+
+El número de FACE va de 1 a 512, así que cada piel solo llega a los archivos que hay entre su base y su base + 511:
+
+- **Archivos 1590-1869 (FACE especiales):** el HAIR va unido a la FACE (archivo + 2559, del 4149 al 4428). Para cambiar ese HAIR hay que reemplazar su archivo en el 0_text.
+- **Archivos 1870-2362 (FACE normales):** el HAIR se elige aparte con cualquier archivo del 2829 al 4876. Los HAIR del 4149 al 4428 cargados por ID de HAIR no están probados en el juego.
+- La piel también cambia el color del cuerpo. La piel 4 (K) llega a todos los archivos de FACE. Las demás no llegan a los primeros: por ejemplo, la FACE 1910 (normal de Ronaldinho) solo se carga con piel 3 (R) o 4 (K).
+
+Para meter caras y pelos nuevos, reemplaza en el 0_text un hueco de FACE especial y su HAIR (archivo + 2559), o una FACE normal y cualquier HAIR, y relinkea al jugador con esos números.
 
 ### Menú
 
-- **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4) y `PELO` (0–2047). Las celdas vacías no cambian nada.
+- **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4), `PELO` (0–2047), `ARCHIVO FACE` y `ARCHIVO HAIR`. Las celdas vacías no cambian nada. Si `ARCHIVO FACE` o `ARCHIVO HAIR` cambian el archivo que se carga, la app recalcula el resto igual que el botón de relinkeo.
 - **Quitar caras especiales**: pasa a cara normal a todos los jugadores con cara especial, o solo a los del equipo elegido.
   - Cada jugador pasa a la cara normal que es copia de su cara especial, según la tabla de equivalencias incluida en la app.
   - Por defecto guarda el resultado en un option file aparte.

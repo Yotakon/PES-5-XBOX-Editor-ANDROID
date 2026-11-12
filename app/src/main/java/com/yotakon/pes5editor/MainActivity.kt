@@ -34,6 +34,7 @@ import com.google.android.material.tabs.TabLayout
 import com.yotakon.pes5editor.core.BadSignatureException
 import com.yotakon.pes5editor.core.Face
 import com.yotakon.pes5editor.core.FaceFields
+import com.yotakon.pes5editor.core.Relink
 import com.yotakon.pes5editor.core.FaceMap
 import com.yotakon.pes5editor.core.removeSpecialWithMap
 import com.yotakon.pes5editor.core.specialFaces
@@ -422,7 +423,9 @@ class MainActivity : AppCompatActivity() {
             val f = faces.read(of, r.id)
             val dorsal = r.number?.let { "$it · " } ?: ""
             h.name.text = dorsal + Players.name(of, r.id)
-            h.detail.text = "ID ${r.id} · FACE ${FaceFields.typeName(f.type)} ${f.number} · piel ${f.skin} · HAIR ${f.hair}"
+            val files = listOfNotNull(Relink.faceFile(f)?.let { "FACE $it" }, Relink.hairFile(f)?.let { "HAIR $it" })
+            val loaded = if (files.isEmpty()) "" else " · archivos ${files.joinToString(" / ")}"
+            h.detail.text = "ID ${r.id} · FACE ${FaceFields.typeName(f.type)} ${f.number} · piel ${f.skin} · HAIR ${f.hair}$loaded"
             h.itemView.setOnClickListener { editFaceDialog(r.id) }
         }
     }
