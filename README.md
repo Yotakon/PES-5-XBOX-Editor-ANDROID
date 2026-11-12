@@ -57,6 +57,34 @@ Así elige el juego los archivos (tablas del `PES5.xbe` de Xbox, offsets `0x578E
 - Si el jugador tenía FACE especial y no escribes archivo de FACE, pasa a su copia normal de la tabla de equivalencias. Por ejemplo, Ronaldinho pasa de la FACE especial 1614 a la normal 1910.
 - La piel también cambia el color del cuerpo. La piel 4 (K) llega a todas las FACE normales.
 
+### 0_text ampliado: FACE especiales dentro de las normales
+
+`herramientas/ampliar_caras.py` añade a cada piel, como FACE normales, sus FACE especiales. Así un jugador con FACE normal (editable en el juego) puede cargar el modelo de una especial.
+
+```
+python3 herramientas/ampliar_caras.py 0_text.afs PES5.xbe salida
+```
+
+- **0_text.afs:** al final crea un bloque por piel con sus FACE normales, en el mismo orden, seguidas de sus especiales. También cambia el archivo 424, que dice al editor del juego cuántas FACE normales hay por piel. Los demás archivos no cambian: solo se desplazan 6 KB para que quepa el índice nuevo.
+- **PES5.xbe:** las bases de FACE normal (offset `0x578E38`) apuntan a los bloques nuevos y el número de archivos del 0_text (offset `0x4EF7E8`) pasa de 11778 a 12551.
+- Hay que usar los dos archivos juntos. La tabla `tablas/caras_ampliadas.csv` dice de qué archivo es copia cada FACE nueva.
+
+| Piel | Archivos | FACE normales | Especiales (normal = N + especial) |
+|---|---|---|---|
+| 1 (W) | 11778-12188 | 1-265 | 266-411 |
+| 2 (Y) | 12189-12411 | 1-139 | 140-223 |
+| 3 (R) | 12412-12500 | 1-57 | 58-89 |
+| 4 (K) | 12501-12550 | 1-32 | 33-50 |
+
+Por ejemplo, la FACE especial de Ronaldinho (1614, piel 3 número 7) es la FACE normal 64 de la piel 3, archivo 12475.
+
+En la app, marca **Uso el 0_text ampliado** en Ajustes. Entonces:
+- El relinkeo acepta los archivos del 0_text original (1590-2362) y usa su copia en el bloque nuevo.
+- **Quitar caras especiales** pasa a cada jugador a la copia exacta de su FACE especial.
+- Con el 0_text ampliado, para cambiar una FACE normal en GGS hay que reemplazar su archivo del bloque nuevo, no el original.
+
+Sin probar en el juego: que el editor del juego muestre y deje elegir las FACE nuevas de cada piel.
+
 ### Menú
 
 - **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4), `PELO` (0–2047), `ARCHIVO FACE` y `ARCHIVO HAIR`. Las celdas vacías no cambian nada. Si `ARCHIVO FACE` o `ARCHIVO HAIR` cambian el archivo que se carga, la app recalcula el resto igual que el botón de relinkeo y deja la FACE normal.

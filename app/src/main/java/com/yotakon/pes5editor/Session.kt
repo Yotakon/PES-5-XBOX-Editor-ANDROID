@@ -6,6 +6,7 @@ import com.yotakon.pes5editor.core.FaceFields
 import com.yotakon.pes5editor.core.FaceMap
 import com.yotakon.pes5editor.core.Field
 import com.yotakon.pes5editor.core.OptionFile
+import com.yotakon.pes5editor.core.Relink
 
 /** Option file abierto. Vive mientras viva el proceso (sobrevive a girar la pantalla). */
 object Session {
@@ -42,6 +43,21 @@ object FaceSettings {
         val e = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
         KEYS.forEachIndexed { i, k -> e.putString(k, values[i]) }
         e.apply()
+    }
+
+    private const val EXPANDED = "ampliado"
+
+    /** true si el usuario usa el 0_text ampliado con herramientas/ampliar_caras.py. */
+    fun expanded(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(EXPANDED, false)
+
+    fun setExpanded(ctx: Context, on: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(EXPANDED, on).apply()
+        applyLayout(ctx)
+    }
+
+    /** Pone en [Relink] la distribución de FACE elegida. */
+    fun applyLayout(ctx: Context) {
+        Relink.layout = if (expanded(ctx)) Relink.EXPANDED else Relink.STANDARD
     }
 }
 

@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         faces = FaceSettings.load(this)
+        FaceSettings.applyLayout(this)
         status = findViewById(R.id.status)
         openButton = findViewById(R.id.openButton)
         editor = findViewById(R.id.editor)
@@ -145,6 +146,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         faces = FaceSettings.load(this)
+        FaceSettings.applyLayout(this)
         if (Session.of != null) refreshList()
     }
 

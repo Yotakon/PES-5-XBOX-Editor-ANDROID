@@ -10,16 +10,42 @@ package com.yotakon.pes5editor.core
  *   y carga siempre archivo de FACE + 2559 (el HAIR especial que va con esa FACE).
  *
  * Por eso la piel limita qué archivos de FACE se pueden cargar: cada piel empieza en una base distinta.
+ *
+ * Con el 0_text ampliado (herramientas/ampliar_caras.py) cada piel tiene al final del 0_text un bloque
+ * con sus FACE normales seguidas de sus especiales, y el XBE apunta las bases de FACE normal a esos bloques.
  */
 object Relink {
     /** Bases por piel, en el orden del option file: 1 = W, 2 = Y, 3 = R, 4 = K. */
     val SPECIAL_FACE = intArrayOf(1640, 1786, 1608, 1590)
-    val NORMAL_FACE = intArrayOf(1959, 2224, 1902, 1870)
+    val SPECIAL_COUNT = intArrayOf(146, 84, 32, 18)
+    val ORIGINAL_NORMAL_FACE = intArrayOf(1959, 2224, 1902, 1870)
+    val ORIGINAL_NORMAL_COUNT = intArrayOf(265, 139, 57, 32)
     const val HAIR_BASE = 2829
     const val SPECIAL_HAIR_OFFSET = 2559
 
+    /** Dónde están las FACE normales de cada piel y cuántas muestra el editor del juego. */
+    class Layout(val label: String, val normalBase: IntArray, val normalCount: IntArray, val expanded: Boolean) {
+        val files: IntRange = normalBase.minOrNull()!!..(0 until 4).maxOf { normalBase[it] + normalCount[it] - 1 }
+    }
+
+    val STANDARD = Layout("0_text original", ORIGINAL_NORMAL_FACE, ORIGINAL_NORMAL_COUNT, false)
+
+    /** Resultado de ampliar_caras.py sobre el 0_text de PES 5 Xbox (11778 archivos). */
+    val EXPANDED = Layout(
+        "0_text ampliado",
+        intArrayOf(11778, 12189, 12412, 12501),
+        IntArray(4) { ORIGINAL_NORMAL_COUNT[it] + SPECIAL_COUNT[it] },
+        true,
+    )
+
+    /** Distribución que usa la app. Se elige en Ajustes. */
+    @Volatile var layout: Layout = STANDARD
+
+    val NORMAL_FACE: IntArray get() = layout.normalBase
+    val NORMAL_FACES: IntRange get() = layout.files
+
     val SPECIAL_FACES = 1590..1869
-    val NORMAL_FACES = 1870..2362
+    val ORIGINAL_NORMAL_FACES = 1870..2362
     val SPECIAL_HAIRS = 4149..4428
     val ORIGINAL_HAIRS = 2829..4428
     const val MAX_NUMBER = 512
@@ -55,8 +81,27 @@ object Relink {
         return skin to file - SPECIAL_FACE[skin - 1] + 1
     }
 
-    /** Archivo de la FACE normal que es copia de la FACE especial de [file], según [map]. */
+    /** Número de FACE normal que es copia exacta de la FACE especial ([skin], [special]) en el 0_text ampliado. */
+    fun expandedNumber(skin: Int, special: Int): Int = ORIGINAL_NORMAL_COUNT[skin - 1] + special
+
+    /**
+     * Con el 0_text ampliado: archivo del bloque nuevo que es copia de [file], si [file] es una FACE
+     * especial (1590-1869) o normal (1870-2362) del 0_text original. Si no, null.
+     */
+    fun translate(file: Int): Int? {
+        if (!layout.expanded) return null
+        specialOwner(file)?.let { (skin, number) -> return NORMAL_FACE[skin - 1] + expandedNumber(skin, number) - 1 }
+        if (file !in ORIGINAL_NORMAL_FACES) return null
+        val skin = (1..4).firstOrNull { file - ORIGINAL_NORMAL_FACE[it - 1] in 0 until ORIGINAL_NORMAL_COUNT[it - 1] } ?: return null
+        return NORMAL_FACE[skin - 1] + file - ORIGINAL_NORMAL_FACE[skin - 1]
+    }
+
+    /**
+     * Archivo de la FACE normal que es copia de la FACE especial de [file]: la copia exacta con el
+     * 0_text ampliado, o la más parecida según [map] con el original.
+     */
     fun normalCopy(file: Int, map: FaceMap?): Int? {
+        translate(file)?.let { return it }
         val (skin, number) = specialOwner(file) ?: return null
         val n = map?.get(skin, number) ?: return null
         return NORMAL_FACE[skin - 1] + n - 1
@@ -64,9 +109,15 @@ object Relink {
 
     /** Pieles (1-4) con las que se puede cargar el archivo como FACE normal. */
     fun skinsFor(file: Int): List<Int> {
-        if (file !in NORMAL_FACES) return emptyList()
-        return (1..4).filter { file - NORMAL_FACE[it - 1] in 0 until MAX_NUMBER }
+        val f = translate(file) ?: file
+        if (f !in NORMAL_FACES) return emptyList()
+        return (1..4).filter { f - NORMAL_FACE[it - 1] in 0 until MAX_NUMBER }
     }
+
+    /** Texto con los archivos de FACE que acepta el relinkeo. */
+    fun faceHint(): String =
+        if (layout.expanded) "${NORMAL_FACES.first}-${NORMAL_FACES.last}, o ${SPECIAL_FACES.first}-${ORIGINAL_NORMAL_FACES.last} del 0_text original"
+        else "${NORMAL_FACES.first}-${NORMAL_FACES.last}"
 
     data class Result(val face: Face?, val error: String? = null, val notes: List<String> = emptyList())
 
@@ -76,8 +127,8 @@ object Relink {
      * - [faceEntry] null: se conserva la FACE. Si es especial, pasa a su copia normal de [map].
      *   Si es normal y solo cambia la piel, se busca el mismo archivo con la piel nueva.
      * - [hairEntry] null: se conserva el ID de HAIR.
-     * Los archivos de FACE especiales (1590-1869) no se pueden cargar con FACE normal; los de HAIR
-     * especiales (4149-4428) sí, con el ID de HAIR 1320-1599.
+     * Con el 0_text original los archivos de FACE especiales (1590-1869) no se pueden cargar con FACE
+     * normal; con el ampliado se usa su copia. Los de HAIR especiales (4149-4428) sí, con el ID de HAIR 1320-1599.
      */
     fun plan(cur: Face, faceEntry: Int?, hairEntry: Int?, skin: Int = cur.skin, map: FaceMap? = null): Result {
         if (skin !in 1..4) return Result(null, "La piel debe estar entre 1 y 4.")
@@ -92,7 +143,7 @@ object Relink {
                     target = from?.let { normalCopy(it, map) } ?: return Result(
                         null,
                         "El jugador tiene FACE especial${from?.let { " (archivo $it)" }.orEmpty()} y no hay copia normal en la tabla. " +
-                            "Indica un archivo de FACE normal (${NORMAL_FACES.first}-${NORMAL_FACES.last}).",
+                            "Indica un archivo de FACE normal (${faceHint()}).",
                     )
                     notes += "La FACE especial $from pasa a su copia normal $target."
                 }
@@ -102,23 +153,33 @@ object Relink {
             }
         }
         if (target != null) {
-            if (target in SPECIAL_FACES) {
-                val copy = normalCopy(target, map)
+            var t: Int = target
+            val moved = translate(t)
+            if (moved != null) {
+                notes += "El archivo $t está copiado en el $moved del 0_text ampliado."
+                t = moved
+            }
+            if (t in SPECIAL_FACES) {
+                val copy = normalCopy(t, map)
                 return Result(
                     null,
-                    "El archivo $target está en la zona de FACE especiales (${SPECIAL_FACES.first}-${SPECIAL_FACES.last}). " +
+                    "El archivo $t está en la zona de FACE especiales (${SPECIAL_FACES.first}-${SPECIAL_FACES.last}). " +
                         "Con FACE normal el juego no llega a esos archivos (la primera FACE normal es la ${NORMAL_FACES.first})." +
                         (copy?.let { " Su copia normal es el archivo $it." } ?: "") +
-                        " Para usar ese modelo, ponlo en un archivo de FACE normal del 0_text.",
+                        " Para usar ese modelo, ponlo en un archivo de FACE normal del 0_text o usa el 0_text ampliado.",
                 )
             }
-            if (target !in NORMAL_FACES) {
-                return Result(null, "El archivo de FACE debe estar entre ${NORMAL_FACES.first} y ${NORMAL_FACES.last}.")
+            if (t !in NORMAL_FACES) {
+                return Result(null, "El archivo de FACE debe estar entre ${faceHint()}.")
             }
-            val n = target - NORMAL_FACE[skin - 1]
+            val n = t - NORMAL_FACE[skin - 1]
             if (n !in 0 until MAX_NUMBER) {
-                val ok = skinsFor(target).joinToString { skinName(it) }
-                return Result(null, "El archivo de FACE $target no se puede cargar con la piel ${skinName(skin)}. Pieles posibles: $ok.")
+                val ok = skinsFor(t).joinToString { skinName(it) }
+                return Result(null, "El archivo de FACE $t no se puede cargar con la piel ${skinName(skin)}. Pieles posibles: $ok.")
+            }
+            if (n >= layout.normalCount[skin - 1]) {
+                notes += "El número ${n + 1} no está en la lista de FACE del editor del juego para la piel ${skinName(skin)} " +
+                    "(1-${layout.normalCount[skin - 1]}): en el partido se carga, pero no lo cambies desde el editor del juego."
             }
             f = f.copy(type = FaceFields.NORMAL, number = n + 1)
         }

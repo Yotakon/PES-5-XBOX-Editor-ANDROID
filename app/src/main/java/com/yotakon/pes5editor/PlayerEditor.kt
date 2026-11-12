@@ -248,7 +248,7 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
                 box.addView(this)
             }
         }
-        val faceE = entry("Archivo de FACE (${Relink.NORMAL_FACES.first}-${Relink.NORMAL_FACES.last})", Relink.faceFile(cur))
+        val faceE = entry("Archivo de FACE (${Relink.faceHint()}) · ${Relink.layout.label}", Relink.faceFile(cur))
         val hairE = entry("Archivo de HAIR (${Relink.HAIR_FILES.first}-${Relink.HAIR_FILES.last})", Relink.hairFile(cur))
         box.addView(label("Color de piel (también cambia el color del cuerpo)"))
         val skinS = spinner(Relink.SKIN_NAMES, cur.skin - 1)
