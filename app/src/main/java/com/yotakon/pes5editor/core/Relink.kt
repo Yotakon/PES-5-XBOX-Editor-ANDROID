@@ -45,90 +45,109 @@ object Relink {
         else -> null
     }
 
-    /** Tipo de FACE con el que se carga un archivo, o null si no es un archivo de FACE. */
-    fun typeFor(file: Int): Int? = when (file) {
-        in SPECIAL_FACES -> FaceFields.SPECIAL
-        in NORMAL_FACES -> FaceFields.NORMAL
-        else -> null
+    /**
+     * Piel y número de la FACE especial que está en [file] (cada piel tiene su grupo:
+     * K 1590-1607, R 1608-1639, W 1640-1785, Y 1786-1869), o null si no es una FACE especial.
+     */
+    fun specialOwner(file: Int): Pair<Int, Int>? {
+        if (file !in SPECIAL_FACES) return null
+        val skin = (1..4).filter { SPECIAL_FACE[it - 1] <= file }.maxByOrNull { SPECIAL_FACE[it - 1] } ?: return null
+        return skin to file - SPECIAL_FACE[skin - 1] + 1
     }
 
-    /** Pieles (1-4) con las que se puede cargar el archivo de FACE. */
+    /** Archivo de la FACE normal que es copia de la FACE especial de [file], según [map]. */
+    fun normalCopy(file: Int, map: FaceMap?): Int? {
+        val (skin, number) = specialOwner(file) ?: return null
+        val n = map?.get(skin, number) ?: return null
+        return NORMAL_FACE[skin - 1] + n - 1
+    }
+
+    /** Pieles (1-4) con las que se puede cargar el archivo como FACE normal. */
     fun skinsFor(file: Int): List<Int> {
-        val t = typeFor(file)?.let { table(it) } ?: return emptyList()
-        return (1..4).filter { file - t[it - 1] in 0 until MAX_NUMBER }
+        if (file !in NORMAL_FACES) return emptyList()
+        return (1..4).filter { file - NORMAL_FACE[it - 1] in 0 until MAX_NUMBER }
     }
 
     data class Result(val face: Face?, val error: String? = null, val notes: List<String> = emptyList())
 
     /**
-     * Calcula los campos para cargar el archivo de FACE [faceEntry] y el de HAIR [hairEntry] con la piel [skin].
-     * - [faceEntry] null: se conserva la FACE; si solo cambia la piel, se busca el mismo archivo con la piel nueva.
+     * Calcula los campos para que el jugador cargue el archivo de FACE [faceEntry] y el de HAIR [hairEntry]
+     * con la piel [skin]. El relinkeo nunca pone FACE especial: con ella el juego no deja editar la cara.
+     * - [faceEntry] null: se conserva la FACE. Si es especial, pasa a su copia normal de [map].
+     *   Si es normal y solo cambia la piel, se busca el mismo archivo con la piel nueva.
      * - [hairEntry] null: se conserva el ID de HAIR.
+     * Los archivos de FACE especiales (1590-1869) no se pueden cargar con FACE normal; los de HAIR
+     * especiales (4149-4428) sí, con el ID de HAIR 1320-1599.
      */
-    fun plan(cur: Face, faceEntry: Int?, hairEntry: Int?, skin: Int = cur.skin): Result {
+    fun plan(cur: Face, faceEntry: Int?, hairEntry: Int?, skin: Int = cur.skin, map: FaceMap? = null): Result {
         if (skin !in 1..4) return Result(null, "La piel debe estar entre 1 y 4.")
         var f = cur.copy(skin = skin)
         val notes = ArrayList<String>()
 
-        val target = faceEntry ?: if (skin != cur.skin) faceFile(cur) else null
+        var target = faceEntry
+        if (target == null) {
+            when (cur.type) {
+                FaceFields.SPECIAL -> {
+                    val from = faceFile(cur)
+                    target = from?.let { normalCopy(it, map) } ?: return Result(
+                        null,
+                        "El jugador tiene FACE especial${from?.let { " (archivo $it)" }.orEmpty()} y no hay copia normal en la tabla. " +
+                            "Indica un archivo de FACE normal (${NORMAL_FACES.first}-${NORMAL_FACES.last}).",
+                    )
+                    notes += "La FACE especial $from pasa a su copia normal $target."
+                }
+                FaceFields.NORMAL -> if (skin != cur.skin) target = faceFile(cur)
+                FaceFields.BUILD -> {}
+                else -> return Result(null, "El tipo de FACE es desconocido (${cur.type}). Indica un archivo de FACE.")
+            }
+        }
         if (target != null) {
-            val type = typeFor(target) ?: return Result(
-                null,
-                "El archivo de FACE debe estar entre ${SPECIAL_FACES.first} y ${NORMAL_FACES.last} " +
-                    "(${SPECIAL_FACES.first}-${SPECIAL_FACES.last} especiales, ${NORMAL_FACES.first}-${NORMAL_FACES.last} normales).",
-            )
-            val n = target - table(type)!![skin - 1]
+            if (target in SPECIAL_FACES) {
+                val copy = normalCopy(target, map)
+                return Result(
+                    null,
+                    "El archivo $target está en la zona de FACE especiales (${SPECIAL_FACES.first}-${SPECIAL_FACES.last}). " +
+                        "Con FACE normal el juego no llega a esos archivos (la primera FACE normal es la ${NORMAL_FACES.first})." +
+                        (copy?.let { " Su copia normal es el archivo $it." } ?: "") +
+                        " Para usar ese modelo, ponlo en un archivo de FACE normal del 0_text.",
+                )
+            }
+            if (target !in NORMAL_FACES) {
+                return Result(null, "El archivo de FACE debe estar entre ${NORMAL_FACES.first} y ${NORMAL_FACES.last}.")
+            }
+            val n = target - NORMAL_FACE[skin - 1]
             if (n !in 0 until MAX_NUMBER) {
                 val ok = skinsFor(target).joinToString { skinName(it) }
                 return Result(null, "El archivo de FACE $target no se puede cargar con la piel ${skinName(skin)}. Pieles posibles: $ok.")
             }
-            f = f.copy(type = type, number = n + 1)
-        } else if (f.type !in 0..2) {
-            return Result(null, "El tipo de FACE es desconocido (${f.type}). Indica un archivo de FACE.")
+            f = f.copy(type = FaceFields.NORMAL, number = n + 1)
         }
 
-        if (f.type == FaceFields.SPECIAL) {
-            val forced = hairFile(f)!!
-            if (hairEntry != null && hairEntry != forced) {
-                return Result(
-                    null,
-                    "Con FACE especial el juego carga siempre el HAIR $forced, que va unido a la FACE ${faceFile(f)}. " +
-                        "Para otro HAIR usa una FACE normal (${NORMAL_FACES.first}-${NORMAL_FACES.last}) " +
-                        "o reemplaza el archivo $forced en el 0_text.",
-                )
+        if (hairEntry != null) {
+            if (hairEntry !in HAIR_FILES) {
+                return Result(null, "El archivo de HAIR debe estar entre ${HAIR_FILES.first} y ${HAIR_FILES.last}.")
             }
-            notes += "HAIR: archivo $forced (va unido a la FACE especial; el ID de HAIR no se usa)."
-        } else {
-            if (hairEntry != null) {
-                if (hairEntry !in HAIR_FILES) {
-                    return Result(null, "El archivo de HAIR debe estar entre ${HAIR_FILES.first} y ${HAIR_FILES.last}.")
-                }
-                f = f.copy(hair = hairEntry - HAIR_BASE)
-            }
-            val h = HAIR_BASE + f.hair
-            notes += "HAIR: archivo $h (ID de HAIR ${f.hair})."
-            when (h) {
-                !in ORIGINAL_HAIRS -> notes += "El archivo $h no es un HAIR en el 0_text original (${ORIGINAL_HAIRS.first}-${ORIGINAL_HAIRS.last})."
-                in SPECIAL_HAIRS -> notes += "Es un HAIR de FACE especial cargado por ID de HAIR: sin probar en el juego."
-            }
+            f = f.copy(hair = hairEntry - HAIR_BASE)
         }
-        faceFile(f)?.let { notes.add(0, "FACE: archivo $it (${FaceFields.typeName(f.type)}, piel ${skinName(f.skin)}, número ${f.number}).") }
-        if (f.type == FaceFields.BUILD) notes.add(0, "FACE creada en el editor: no carga ningún archivo de FACE.")
+        val h = HAIR_BASE + f.hair
+        notes += "HAIR: archivo $h (ID de HAIR ${f.hair})."
+        when (h) {
+            !in ORIGINAL_HAIRS -> notes += "El archivo $h no es un HAIR en el 0_text original (${ORIGINAL_HAIRS.first}-${ORIGINAL_HAIRS.last})."
+            in SPECIAL_HAIRS -> notes += "Está en la zona de HAIR especiales y se carga como HAIR normal: sin probar en el juego."
+        }
+        when (f.type) {
+            FaceFields.NORMAL -> notes.add(0, "FACE: archivo ${faceFile(f)} (normal, piel ${skinName(f.skin)}, número ${f.number}).")
+            FaceFields.BUILD -> notes.add(0, "FACE creada en el editor: no carga ningún archivo de FACE.")
+        }
         return Result(f, null, notes)
     }
 
     /**
-     * Igual que [plan], pero con los archivos tal como se ven en pantalla o en el CSV:
-     * - un archivo de FACE igual al que ya se carga (con la misma piel) no cuenta como cambio;
-     * - si el archivo de HAIR no se ha tocado y choca con una FACE especial nueva, se deja el HAIR de esa FACE.
+     * Igual que [plan], con los archivos tal como se ven en pantalla o en el CSV: un archivo de FACE igual
+     * al que ya se carga no cuenta como cambio (salvo una FACE normal con piel nueva).
      */
-    fun relink(cur: Face, faceEntry: Int?, hairEntry: Int?, skin: Int = cur.skin): Result {
-        val fe = faceEntry?.takeIf { it != faceFile(cur) || skin != cur.skin }
-        val r = plan(cur, fe, hairEntry, skin)
-        if (r.face == null && hairEntry != null && hairEntry == hairFile(cur)) {
-            val again = plan(cur, fe, null, skin)
-            if (again.face != null) return again
-        }
-        return r
+    fun relink(cur: Face, faceEntry: Int?, hairEntry: Int?, skin: Int = cur.skin, map: FaceMap? = null): Result {
+        val fe = faceEntry?.takeIf { it != faceFile(cur) || (skin != cur.skin && cur.type == FaceFields.NORMAL) }
+        return plan(cur, fe, hairEntry, skin, map)
     }
 }

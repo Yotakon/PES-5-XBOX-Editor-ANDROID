@@ -43,10 +43,11 @@ object FaceTools {
     /**
      * Columnas: ID y cualquiera de TIPO CARA (0-2), NUMERO CARA (1-512), PIEL (1-4), PELO (0-2047),
      * ARCHIVO FACE (1590-2362) y ARCHIVO HAIR (2829-4876) del 0_text.afs.
-     * Los archivos se aplican después de las demás columnas y solo si cambian el archivo que se carga
-     * (ver [Relink.plan]). Separador ';' o ','. Celdas vacías = sin cambios.
+     * Los archivos se aplican después de las demás columnas y solo si cambian el archivo que se carga.
+     * Con ellos el jugador queda siempre con FACE normal (ver [Relink.plan]); [map] da la copia normal
+     * de las FACE especiales. Separador ';' o ','. Celdas vacías = sin cambios.
      */
-    fun importCsv(of: OptionFile, ff: FaceFields, text: String): ImportResult {
+    fun importCsv(of: OptionFile, ff: FaceFields, text: String, map: FaceMap? = null): ImportResult {
         val r = ImportResult()
         val lines = text.removePrefix("\uFEFF").lines()
         if (lines.isEmpty() || lines[0].isBlank()) {
@@ -103,7 +104,7 @@ object FaceTools {
             val faceChanges = faceEntry != null && faceEntry != Relink.faceFile(nf)
             val hairChanges = hairEntry != null && hairEntry != Relink.hairFile(nf)
             if (faceChanges || hairChanges) {
-                val p = Relink.relink(nf, faceEntry, hairEntry)
+                val p = Relink.relink(nf, faceEntry, hairEntry, map = map)
                 if (p.face == null) r.errors += "Línea $lineNo: ${p.error}" else nf = p.face
             }
             if (nf != old) {
