@@ -35,7 +35,7 @@ Al guardar, la app recalcula las sumas de control y la firma de Xbox.
 
 ### Relinkeo por archivo del 0_text
 
-En el editor del jugador, el botón **Relinkear por archivo del 0_text** pide el número de archivo de FACE y de HAIR (contando desde 0, como GGS) y la piel. La app calcula el tipo de FACE, el número y el ID de HAIR que hacen que el juego cargue esos archivos. La lista de jugadores muestra qué archivos carga cada uno.
+En el editor del jugador, el botón **Relinkear por archivo del 0_text** pide el número de archivo de FACE y de HAIR (contando desde 0, como GGS) y la piel. La app deja al jugador con **FACE normal** y calcula el número de FACE y el ID de HAIR para que el juego cargue esos archivos. Nunca pone FACE especial, porque con ella el editor del juego no deja editar la cara. La lista de jugadores muestra qué archivos carga cada uno.
 
 Así elige el juego los archivos (tablas del `PES5.xbe` de Xbox, offsets `0x578E18` y `0x578A24`):
 
@@ -45,24 +45,21 @@ Así elige el juego los archivos (tablas del `PES5.xbe` de Xbox, offsets `0x578E
 | Normal | base normal de la piel + número - 1 | 2829 + ID de HAIR |
 | Creada | se genera con los parámetros | 2829 + ID de HAIR |
 
-| Piel | Base especial | Base normal |
+| Piel | Base normal | Archivos de FACE normal que alcanza |
 |---|---|---|
-| 1 (W) | 1640 | 1959 |
-| 2 (Y) | 1786 | 2224 |
-| 3 (R) | 1608 | 1902 |
-| 4 (K) | 1590 | 1870 |
+| 1 (W) | 1959 | 1959-2362 |
+| 2 (Y) | 2224 | 2224-2362 |
+| 3 (R) | 1902 | 1902-2362 |
+| 4 (K) | 1870 | 1870-2362 |
 
-El número de FACE va de 1 a 512, así que cada piel solo llega a los archivos que hay entre su base y su base + 511:
-
-- **Archivos 1590-1869 (FACE especiales):** el HAIR va unido a la FACE (archivo + 2559, del 4149 al 4428). Para cambiar ese HAIR hay que reemplazar su archivo en el 0_text.
-- **Archivos 1870-2362 (FACE normales):** el HAIR se elige aparte con cualquier archivo del 2829 al 4876. Los HAIR del 4149 al 4428 cargados por ID de HAIR no están probados en el juego.
-- La piel también cambia el color del cuerpo. La piel 4 (K) llega a todos los archivos de FACE. Las demás no llegan a los primeros: por ejemplo, la FACE 1910 (normal de Ronaldinho) solo se carga con piel 3 (R) o 4 (K).
-
-Para meter caras y pelos nuevos, reemplaza en el 0_text un hueco de FACE especial y su HAIR (archivo + 2559), o una FACE normal y cualquier HAIR, y relinkea al jugador con esos números.
+- **HAIR:** con FACE normal se puede cargar cualquier archivo del 2829 al 4876, también los de la zona de HAIR especiales (4149-4428, ID de HAIR 1320-1599). Cargarlos así no está probado en el juego.
+- **FACE:** con FACE normal el juego no llega a la zona de FACE especiales (1590-1869). Si escribes uno de esos archivos, la app te dice cuál es su copia normal. Para usar un modelo nuevo, ponlo en un archivo de FACE normal.
+- Si el jugador tenía FACE especial y no escribes archivo de FACE, pasa a su copia normal de la tabla de equivalencias. Por ejemplo, Ronaldinho pasa de la FACE especial 1614 a la normal 1910.
+- La piel también cambia el color del cuerpo. La piel 4 (K) llega a todas las FACE normales.
 
 ### Menú
 
-- **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4), `PELO` (0–2047), `ARCHIVO FACE` y `ARCHIVO HAIR`. Las celdas vacías no cambian nada. Si `ARCHIVO FACE` o `ARCHIVO HAIR` cambian el archivo que se carga, la app recalcula el resto igual que el botón de relinkeo.
+- **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4), `PELO` (0–2047), `ARCHIVO FACE` y `ARCHIVO HAIR`. Las celdas vacías no cambian nada. Si `ARCHIVO FACE` o `ARCHIVO HAIR` cambian el archivo que se carga, la app recalcula el resto igual que el botón de relinkeo y deja la FACE normal.
 - **Quitar caras especiales**: pasa a cara normal a todos los jugadores con cara especial, o solo a los del equipo elegido.
   - Cada jugador pasa a la cara normal que es copia de su cara especial, según la tabla de equivalencias incluida en la app.
   - Por defecto guarda el resultado en un option file aparte.

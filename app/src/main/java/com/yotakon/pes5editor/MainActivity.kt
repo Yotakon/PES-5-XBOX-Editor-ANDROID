@@ -449,7 +449,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun importFacesCsv(uri: Uri) {
         try {
-            val r = FaceTools.importCsv(requireOf(), faces, String(readAll(uri), Charsets.UTF_8))
+            val r = FaceTools.importCsv(requireOf(), faces, String(readAll(uri), Charsets.UTF_8), FaceMapStore.load(this))
             if (r.changedPlayers > 0) markDirty()
             refreshList()
             val msg = StringBuilder("Jugadores modificados: ${r.changedPlayers}")

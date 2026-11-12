@@ -34,6 +34,7 @@ import com.yotakon.pes5editor.core.Relink
 class PlayerEditor(private val act: MainActivity, private val id: Int, private val after: () -> Unit) {
     private val of: OptionFile = act.requireOf()
     private val ff = act.faces
+    private val map by lazy { FaceMapStore.load(act) }
 
     /** Catálogo con los campos de FACE y HAIR que se pueden corregir en Ajustes. */
     private val fields: List<PField> = PlayerFields.ALL.map {
@@ -92,7 +93,7 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
             }
             if (s == Section.FACE) {
                 body.addView(label("Relinkeo: escribe el archivo de FACE y de HAIR del 0_text que quieres cargar. " +
-                    "La app calcula el tipo de FACE, el número y el ID de HAIR.", small = true))
+                    "La app pone FACE normal y calcula el número y el ID de HAIR.", small = true))
                 loaded = label("", small = true)
                 body.addView(loaded)
                 body.addView(Button(act).apply {
@@ -236,7 +237,8 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(8), dp(20), 0)
         }
-        box.addView(label("Números de archivo del 0_text.afs, contando desde 0 como GGS. Deja una casilla vacía para no cambiarla.", small = true))
+        box.addView(label("Números de archivo del 0_text.afs, contando desde 0 como GGS. Deja una casilla vacía para no cambiarla. " +
+            "El jugador queda siempre con FACE normal, para que se pueda editar en el juego.", small = true))
         fun entry(title: String, value: Int?): EditText {
             box.addView(label(title))
             return EditText(act).apply {
@@ -246,8 +248,7 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
                 box.addView(this)
             }
         }
-        val faceE = entry("Archivo de FACE (${Relink.SPECIAL_FACES.first}-${Relink.SPECIAL_FACES.last} especiales, " +
-            "${Relink.NORMAL_FACES.first}-${Relink.NORMAL_FACES.last} normales)", Relink.faceFile(cur))
+        val faceE = entry("Archivo de FACE (${Relink.NORMAL_FACES.first}-${Relink.NORMAL_FACES.last})", Relink.faceFile(cur))
         val hairE = entry("Archivo de HAIR (${Relink.HAIR_FILES.first}-${Relink.HAIR_FILES.last})", Relink.hairFile(cur))
         box.addView(label("Color de piel (también cambia el color del cuerpo)"))
         val skinS = spinner(Relink.SKIN_NAMES, cur.skin - 1)
@@ -258,7 +259,7 @@ class PlayerEditor(private val act: MainActivity, private val id: Int, private v
         fun compute(): Relink.Result {
             val fe = faceE.text.toString().trim().toIntOrNull()
             val he = hairE.text.toString().trim().toIntOrNull()
-            return Relink.relink(cur, fe, he, skinS.selectedItemPosition + 1)
+            return Relink.relink(cur, fe, he, skinS.selectedItemPosition + 1, map)
         }
 
         val dialog = AlertDialog.Builder(act)
