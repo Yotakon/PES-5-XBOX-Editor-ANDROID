@@ -22,6 +22,7 @@ La clave de firma está en el repositorio para que GitHub Actions pueda usarla. 
 3. Elige un equipo en el desplegable, o "Todos los jugadores", y busca por nombre o ID.
 4. Toca un jugador para cambiar el **tipo de cara** (creada / especial / normal), el **número de cara**, el **color de piel** y el **ID de pelo**.
 5. Guarda con **Guardar** (reemplaza el archivo) o con **Guardar como…**, y vuelve a copiarlo a la Xbox con el nombre `KONAMI-XBOX-PES5OPT.xsv`.
+6. Para trabajar con otro archivo, usa **Cerrar option file** en el menú. Si hay cambios sin guardar, la app pregunta si guardarlos antes de cerrar.
 
 Al guardar, la app recalcula las sumas de control y la firma de Xbox.
 

@@ -172,6 +172,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_open -> askOpen()
+            R.id.action_close -> askClose()
             R.id.action_save -> saveOverwrite()
             R.id.action_save_as -> saveAs(requireOf(), "Guardado") { }
             R.id.action_export_faces -> exportFacesCsv()
@@ -280,6 +281,46 @@ class MainActivity : AppCompatActivity() {
         } else {
             openXsv.launch(arrayOf("*/*"))
         }
+    }
+
+    /** Cierra el option file abierto, avisando si hay cambios sin guardar. */
+    private fun askClose() {
+        if (Session.of == null) return
+        if (!Session.dirty) {
+            closeFile()
+            return
+        }
+        val b = AlertDialog.Builder(this)
+            .setTitle("Cerrar option file")
+            .setMessage("Hay cambios sin guardar en ${Session.fileName}.")
+            .setNegativeButton("Cancelar", null)
+            .setNeutralButton("Cerrar sin guardar") { _, _ -> closeFile() }
+        val uri = Session.uri
+        if (!readOnly && uri != null) {
+            b.setPositiveButton("Guardar y cerrar") { _, _ ->
+                if (writeTo(uri, requireOf().toXsv())) {
+                    toast("Guardado")
+                    closeFile()
+                }
+            }
+        }
+        b.show()
+    }
+
+    private fun closeFile() {
+        Session.of = null
+        Session.uri = null
+        Session.fileName = ""
+        Session.dirty = false
+        adapter.rows = emptyList()
+        adapter.notifyDataSetChanged()
+        teamSpinner.adapter = null
+        search.setText("")
+        tabLayout.getTabAt(0)?.select()
+        showTab(0)
+        showState()
+        invalidateOptionsMenu()
+        toast("Option file cerrado")
     }
 
     private fun loadOptionFile(uri: Uri, allowBadSignature: Boolean = false) {
