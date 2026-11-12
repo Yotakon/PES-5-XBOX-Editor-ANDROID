@@ -3,6 +3,7 @@ package com.yotakon.pes5editor
 import android.os.Bundle
 import android.text.InputType
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -38,6 +39,13 @@ class SettingsActivity : AppCompatActivity() {
                 root.addView(this)
             }
         }
+        val expanded = CheckBox(this).apply {
+            text = "Uso el 0_text ampliado (FACE especiales añadidas a las normales de cada piel, " +
+                "con herramientas/ampliar_caras.py y su PES5.xbe)"
+            isChecked = FaceSettings.expanded(this@SettingsActivity)
+            setPadding(0, pad, 0, 0)
+        }
+        root.addView(expanded)
         root.addView(Button(this).apply {
             text = "Guardar"
             setOnClickListener {
@@ -48,6 +56,7 @@ class SettingsActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
                 FaceSettings.save(this@SettingsActivity, values)
+                FaceSettings.setExpanded(this@SettingsActivity, expanded.isChecked)
                 Toast.makeText(this@SettingsActivity, "Guardado", Toast.LENGTH_SHORT).show()
                 finish()
             }

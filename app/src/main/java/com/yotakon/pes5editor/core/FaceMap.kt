@@ -72,7 +72,8 @@ fun FaceFields.specialFaces(of: OptionFile): List<SpecialFace> {
 }
 
 /**
- * Pasa a cara normal a los jugadores con cara especial que tengan equivalencia en la tabla.
+ * Pasa a cara normal a los jugadores con cara especial que tengan equivalencia en la tabla
+ * (o su copia exacta, con el 0_text ampliado).
  * Los que no la tienen no se tocan y aparecen en el informe.
  */
 fun FaceTools.removeSpecialWithMap(of: OptionFile, ff: FaceFields, ids: IntArray, map: FaceMap): List<FaceTools.Change> {
@@ -81,7 +82,12 @@ fun FaceTools.removeSpecialWithMap(of: OptionFile, ff: FaceFields, ids: IntArray
         if (!Players.isValid(id) || ff.type.get(of, id) != FaceFields.SPECIAL) continue
         val f = ff.read(of, id)
         val name = Players.name(of, id)
-        val n = map.get(f.skin, f.number)
+        // Con el 0_text ampliado cada FACE especial tiene una copia exacta entre las normales de su piel
+        val n = if (Relink.layout.expanded && f.skin in 1..4 && f.number <= Relink.SPECIAL_COUNT[f.skin - 1]) {
+            Relink.expandedNumber(f.skin, f.number)
+        } else {
+            map.get(f.skin, f.number)
+        }
         if (n == null || n > ff.face.mask + 1) {
             out += FaceTools.Change(id, name, f.type, f.number, f.type, f.number, "sin cambios: sin equivalencia (piel ${f.skin})")
             continue
