@@ -131,11 +131,14 @@ Esto coincide con `0x5E3320`, que compara la ranura 0 (editada) con la ranura 1 
 
 La referencia sigue con faceset 1 aunque el Option File tenga 2. Por tanto no sale del Option File; lo más probable es que salga de los datos originales. No está verificado.
 
-## 11. Parches actuales (`parches/`)
+## 11. Parche final (`parches/`)
 
 | Archivo | Cambios | MD5 |
 |---|---|---|
 | `PES5_sin_restauracion.xbe` | `0x910BC0`: `8B` → `C3` (`0x5E3320` sale sin hacer nada) | `504cf8c17cb8062285735ab0289a7b78` |
-| `PES5_sin_conversion_ni_restauracion.xbe` | Lo anterior + `0x910ED4`: `E8 87 FC FF FF` → `90 90 90 90 90` | `13f0622d752ca5f37f108d6cff9bfa75` |
 
 Los dos llamadores de `0x5E3320` (`0x5E5841` y `0x5E5927`) no usan su valor de retorno. Salir al principio equivale a que la comprobación falle.
+
+**Estado: probado por el usuario y funciona.** Se usa junto con un Option File procesado con "Quitar FACE especiales" del editor Android. Con eso el editor del juego ya no devuelve la cara especial al pulsar OK.
+
+Se descartó un segundo parche que además anulaba la conversión de `0x910ED4`, porque no hace falta. Es la misma conversión que se describe en la sección 9 como no recomendada.
