@@ -17,6 +17,9 @@ copian a un bloque nuevo al final del 0_text y el inicio de los cabellos del XBE
 - 0_text.afs: bloque nuevo al final y el archivo 424 con la lista ampliada. En la lista, los 10
   últimos EN originales (IDs 1290-1299) siguen siendo los últimos por índice: el juego los oculta
   hasta que se desbloquean (regla "ocultar los últimos 10 especiales") y los nuevos quedan antes.
+  Tras los registros, el archivo 424 guarda una marca 0/1 por cada índice de cabello especial (el juego
+  la lee con el índice: 0 en los cabellos casi rapados, de 64-73 vértices, y en los 10 bloqueados).
+  Esa lista se amplía con una marca por EN, copiada del cabello que se clona.
 - PES5.xbe: las entradas de la tabla de cabellos para FACE creada y normal (offset 0x578A24)
   apuntan al bloque nuevo y el número de archivos del 0_text (offset 0x4EF7E8) sube.
 - Los cabellos de las FACE especiales (faceset 1) no cambian: siguen siendo archivo de FACE + 2559.
@@ -103,20 +106,32 @@ def rebuild_editor_data(editor, en_total):
     if new_cnt < 0 or LAST_ORIGINAL + new_cnt > MAX_ID:
         sys.exit("EN debe estar entre %d y %d" % (EN_ORIGINAL, EN_ORIGINAL + MAX_ID - LAST_ORIGINAL))
 
+    # Marcas 0/1 por índice especial (el juego lee trailer[índice]); se reordenan igual que los índices
+    old_flags = {i - FIRST_SPECIAL: trailer[i - FIRST_SPECIAL] for i in range(FIRST_SPECIAL, nrec)}
+    flags = [0] * en_total
+
     # Índices: los 264 EN visibles conservan el suyo; los nuevos van después; los 10 bloqueados quedan al final
     visible = EN_ORIGINAL - LOCKED
+    for k in range(visible):
+        flags[k] = old_flags[k]
     for k, i in enumerate(range(LAST_ORIGINAL - LOCKED + 1, LAST_ORIGINAL + 1)):
         idx = en_total - LOCKED + k
         recs[i][2], recs[i][3] = idx & 0xFF, idx >> 8
+        flags[idx] = old_flags[i - FIRST_SPECIAL]
     for k in range(new_cnt):
-        r = bytearray(recs[1044 + (k % len(TEXTURED))])      # mismos atributos que el EN que se clona
+        src = 1044 + (k % len(TEXTURED))
+        r = bytearray(recs[src])      # mismos atributos y misma marca que el EN que se clona
         idx = visible + k
+        flags[idx] = old_flags[src - FIRST_SPECIAL]
         r[2], r[3] = idx & 0xFF, idx >> 8
         recs.append(r)
+    trailer = bytes(flags)
 
     nrec2 = len(recs)
     p1_new = struct.pack("<IHH", nrec2, en_total, hidden) + b"".join(bytes(r) for r in recs) + trailer
     p1_new += b"\0" * (align(len(p1_new), 16) - len(p1_new))
+    if len(trailer) < en_total:
+        sys.exit("La lista de marcas es más corta que los índices")
 
     n1 = o0 + len(p0)
     n2 = n1 + len(p1_new)
@@ -161,6 +176,9 @@ def main():
 
     used = [o for o, s in toc if s]
     first = min(used)
+    # El 0_text original tiene relleno (no es cero) entre el final del índice y el primer archivo: se conserva
+    src.seek(8 + 8 * n + 8)
+    pad = src.read(first - (8 + 8 * n + 8))
     head_size = align(max(first, 8 + 8 * n2 + 8))
     delta = head_size - first
     end_old = max(o + s for o, s in toc)
@@ -203,6 +221,8 @@ def main():
         for o2, s2 in new_toc:
             out.write(struct.pack("<II", o2, s2))
         out.write(struct.pack("<II", *name_ptr))
+        room = head_size - (8 + 8 * n2 + 8)
+        out.write(pad[:max(room, 0)])
 
     for i in (0, 1, 2, 3, 8, 9, 10, 11):
         struct.pack_into("<I", xbe, XBE_HAIR + 4 * i, 0x10000 + block_base)

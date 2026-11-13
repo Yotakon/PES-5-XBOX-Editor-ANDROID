@@ -105,6 +105,8 @@ Los EN son los cabellos que el editor lista como "Especial": los IDs 1026-1299 (
 - **0_text.afs:** pasa de 12551 a 14350 archivos. El archivo 424 (lista del editor) queda con 1799 cabellos, 773 de ellos EN, y el resto de archivos no cambia.
 - **PES5.xbe:** la tabla de cabellos (offset `0x578A24`) apunta al bloque nuevo para FACE creada y normal, y el número de archivos (offset `0x4EF7E8`) pasa a 14350. Los cabellos de las FACE especiales no cambian: siguen siendo archivo de FACE + 2559.
 - **Los 10 EN bloqueados:** el juego oculta los 10 últimos EN de la lista hasta que se desbloquean. Siguen siendo los últimos por orden en el menú, así que los EN nuevos se ven siempre y los bloqueados quedan al final.
+- **Lista de marcas 0/1 del archivo 424:** tras los registros hay un byte por cada cabello especial, que el juego lee con el índice del cabello. Vale 0 en los 10 EN más rapados (64 y 73 vértices) y en los 10 bloqueados, y 1 en el resto. La herramienta la amplía a 773 marcas: cada EN conserva la suya y cada clon copia la de su original.
+- **Relleno del encabezado:** el 0_text original tiene 2016 bytes que no son cero entre el índice y el primer archivo. Las herramientas los conservan.
 - La tabla `tablas/cabellos_ampliados.csv` dice de qué archivo es copia cada ID.
 - Para cambiar un cabello con GGS hay que reemplazar su copia en el bloque nuevo, no el archivo 2829-4128 original, que ya no se carga.
 

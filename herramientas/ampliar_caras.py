@@ -112,6 +112,9 @@ def main():
     # Índice nuevo: los datos existentes se desplazan lo justo para que quepa
     used = [o for o, s in toc if s]
     first = min(used)
+    # El 0_text original tiene relleno (no es cero) entre el final del índice y el primer archivo: se conserva
+    src.seek(8 + 8 * n + 8)
+    pad = src.read(first - (8 + 8 * n + 8))
     head_size = align(max(first, 8 + 8 * n2 + 8))
     delta = head_size - first
     end_old = max(o + s for o, s in toc)
@@ -156,6 +159,8 @@ def main():
         for o2, s2 in new_toc:
             out.write(struct.pack("<II", o2, s2))
         out.write(struct.pack("<II", *name_ptr))
+        room = head_size - (8 + 8 * n2 + 8)
+        out.write(pad[:max(room, 0)])
 
     # XBE
     for s in range(4):
