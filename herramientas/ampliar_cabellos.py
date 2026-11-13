@@ -19,7 +19,9 @@ copian a un bloque nuevo al final del 0_text y el inicio de los cabellos del XBE
   hasta que se desbloquean (regla "ocultar los últimos 10 especiales") y los nuevos quedan antes.
   Tras los registros, el archivo 424 guarda una marca 0/1 por cada índice de cabello especial (el juego
   la lee con el índice: 0 en los cabellos casi rapados, de 64-73 vértices, y en los 10 bloqueados).
-  Esa lista se amplía con una marca por EN, copiada del cabello que se clona.
+  Esa lista se amplía con una marca por EN (1 en los EN nuevos).
+- El archivo 424 comprimido debe caber en su hueco original del 0_text (4096 bytes, 2 sectores):
+  con 3 sectores el juego se cierra tras el logo. Por eso los EN nuevos usan un registro sencillo.
 - PES5.xbe: las entradas de la tabla de cabellos para FACE creada y normal (offset 0x578A24)
   apuntan al bloque nuevo y el número de archivos del 0_text (offset 0x4EF7E8) sube.
 - Los cabellos de las FACE especiales (faceset 1) no cambian: siguen siendo archivo de FACE + 2559.
@@ -119,12 +121,11 @@ def rebuild_editor_data(editor, en_total):
         recs[i][2], recs[i][3] = idx & 0xFF, idx >> 8
         flags[idx] = old_flags[i - FIRST_SPECIAL]
     for k in range(new_cnt):
-        src = 1044 + (k % len(TEXTURED))
-        r = bytearray(recs[src])      # mismos atributos y misma marca que el EN que se clona
+        # Registro EN sencillo (sin variantes) y marca 1: así la lista comprimida cabe en el hueco
+        # original del archivo 424 (2 sectores). El juego no admite el 424 si ocupa más.
         idx = visible + k
-        flags[idx] = old_flags[src - FIRST_SPECIAL]
-        r[2], r[3] = idx & 0xFF, idx >> 8
-        recs.append(r)
+        flags[idx] = 1
+        recs.append(bytearray([12, 0, idx & 0xFF, idx >> 8, 0, 0, 0, 0]))
     trailer = bytes(flags)
 
     nrec2 = len(recs)
@@ -200,6 +201,8 @@ def main():
 
         o, s = toc[EDITOR_DATA]
         nxt = min([x for x in used if x > o] + [align(end_old)])
+        if align(len(editor_new)) > nxt - o:
+            sys.exit("El archivo 424 ampliado ocupa %d bytes y no cabe en su hueco de %d: usa menos EN (--en=N)" % (len(editor_new), nxt - o))
         if align(len(editor_new)) <= nxt - o:
             out.seek(o + delta)
             out.write(editor_new + b"\0" * (align(len(editor_new)) - len(editor_new)))
