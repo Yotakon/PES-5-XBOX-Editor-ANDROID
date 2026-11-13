@@ -155,7 +155,7 @@ object PlayerFields {
         num("jaw", "Mandíbula: tipo", 75, 4, 7, F, add = 1); inv("chin", "Mandíbula: barbilla", 75, 7, 7, F)
 
         val H = Section.HAIR
-        num("hair", "ID de HAIR (0-1043 normal, 1044+ especial)", 45, 0, 0x7FF, H)
+        num("hair", "ID de HAIR (0-1025 normal, 1026+ especial normal EN)", 45, 0, 0x7FF, H)
         num("haircfg", "Color de HAIR: preajuste (63 = RGB)", 46, 3, 63, H, add = 1)
         inv("hairr", "Color de HAIR: R (0-63)", 54, 5, 63, H, center = 63)
         inv("hairg", "Color de HAIR: G (0-63)", 55, 3, 63, H, center = 63)

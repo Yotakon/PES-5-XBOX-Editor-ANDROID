@@ -86,6 +86,32 @@ En la app, marca **Uso el 0_text ampliado** en Ajustes. Entonces:
 
 Sin probar en el juego: que el editor del juego muestre y deje elegir las FACE nuevas de cada piel.
 
+### Cabellos EN ampliados: tantos como caras en el editor
+
+`herramientas/ampliar_cabellos.py` deja en la lista de cabellos del editor del juego tantos cabellos de tipo Especial (EN) como caras tiene el editor (773 con el 0_text de caras ampliado). Se ejecuta después de `ampliar_caras.py`, con el 0_text y el XBE que salieron de ahí:
+
+```
+python3 herramientas/ampliar_caras.py 0_text.afs PES5.xbe salida
+python3 herramientas/ampliar_cabellos.py salida/0_text.afs salida/PES5.xbe salida_cabellos
+```
+
+Los EN son los cabellos que el editor lista como "Especial": los IDs 1026-1299 (274, archivos 3855-4128). Con esa lista no salen los cabellos de las FACE especiales (4149-4428), que solo se cargan con su cara, ni los 20 modelos con gorra (4129-4148). Como el juego carga el archivo 2829 + ID de HAIR, los IDs por encima de 1299 caerían en esos archivos. Por eso los cabellos se copian a un bloque nuevo y el inicio de los cabellos se mueve ahí:
+
+| IDs de HAIR | Archivos (0_text con cabellos ampliados) | Qué son |
+|---|---|---|
+| 0-1299 | 12551-13850 | Copia de los archivos 2829-4128: los 1026 normales y los 274 EN del juego |
+| 1300-1798 | 13851-14349 | 499 EN nuevos: clones de relleno de los 256 EN con textura, para reemplazarlos |
+
+- **0_text.afs:** pasa de 12551 a 14350 archivos. El archivo 424 (lista del editor) queda con 1799 cabellos, 773 de ellos EN, y el resto de archivos no cambia.
+- **PES5.xbe:** la tabla de cabellos (offset `0x578A24`) apunta al bloque nuevo para FACE creada y normal, y el número de archivos (offset `0x4EF7E8`) pasa a 14350. Los cabellos de las FACE especiales no cambian: siguen siendo archivo de FACE + 2559.
+- **Los 10 EN bloqueados:** el juego oculta los 10 últimos EN de la lista hasta que se desbloquean. Siguen siendo los últimos por orden en el menú, así que los EN nuevos se ven siempre y los bloqueados quedan al final.
+- La tabla `tablas/cabellos_ampliados.csv` dice de qué archivo es copia cada ID.
+- Para cambiar un cabello con GGS hay que reemplazar su copia en el bloque nuevo, no el archivo 2829-4128 original, que ya no se carga.
+
+En la app, marca también **...y también los HAIR ampliados** en Ajustes. Entonces el relinkeo calcula el archivo de HAIR en el bloque nuevo, acepta los archivos 2829-4128 originales (usa su copia) y avisa con el EN equivalente cuando pides un cabello de FACE especial, porque ese no está en el bloque.
+
+Sin probar en el juego: que el editor muestre los 773 EN, que no falle con ellos y que el bloqueo siga afectando a los mismos 10.
+
 ### Menú
 
 - **Exportar / importar caras por CSV**: columnas `ID`, `TIPO CARA` (0 creada, 1 especial, 2 normal), `NUMERO CARA` (1–512), `PIEL` (1–4), `PELO` (0–2047), `ARCHIVO FACE` y `ARCHIVO HAIR`. Las celdas vacías no cambian nada. Si `ARCHIVO FACE` o `ARCHIVO HAIR` cambian el archivo que se carga, la app recalcula el resto igual que el botón de relinkeo y deja la FACE normal.

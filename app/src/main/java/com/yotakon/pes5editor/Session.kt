@@ -46,18 +46,28 @@ object FaceSettings {
     }
 
     private const val EXPANDED = "ampliado"
+    private const val EXPANDED_HAIR = "ampliadoCabellos"
 
     /** true si el usuario usa el 0_text ampliado con herramientas/ampliar_caras.py. */
     fun expanded(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(EXPANDED, false)
 
-    fun setExpanded(ctx: Context, on: Boolean) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(EXPANDED, on).apply()
+    /** true si además amplió los cabellos con herramientas/ampliar_cabellos.py. */
+    fun expandedHair(ctx: Context) = expanded(ctx) &&
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(EXPANDED_HAIR, false)
+
+    fun setExpanded(ctx: Context, faces: Boolean, hair: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean(EXPANDED, faces).putBoolean(EXPANDED_HAIR, faces && hair).apply()
         applyLayout(ctx)
     }
 
-    /** Pone en [Relink] la distribución de FACE elegida. */
+    /** Pone en [Relink] la distribución de FACE y HAIR elegida. */
     fun applyLayout(ctx: Context) {
-        Relink.layout = if (expanded(ctx)) Relink.EXPANDED else Relink.STANDARD
+        Relink.layout = when {
+            expandedHair(ctx) -> Relink.EXPANDED_HAIR
+            expanded(ctx) -> Relink.EXPANDED
+            else -> Relink.STANDARD
+        }
     }
 }
 
