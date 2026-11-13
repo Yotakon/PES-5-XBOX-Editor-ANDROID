@@ -13,6 +13,8 @@ package com.yotakon.pes5editor.core
  *
  * Con el 0_text ampliado (herramientas/ampliar_caras.py) cada piel tiene al final del 0_text un bloque
  * con sus FACE normales seguidas de sus especiales, y el XBE apunta las bases de FACE normal a esos bloques.
+ * Con herramientas/ampliar_cabellos.py los cabellos también tienen un bloque propio (IDs 0-1798) y la
+ * base de HAIR pasa del 2829 al inicio de ese bloque.
  */
 object Relink {
     /** Bases por piel, en el orden del option file: 1 = W, 2 = Y, 3 = R, 4 = K. */
@@ -24,8 +26,20 @@ object Relink {
     const val SPECIAL_HAIR_OFFSET = 2559
 
     /** Dónde están las FACE normales de cada piel y cuántas muestra el editor del juego. */
-    class Layout(val label: String, val normalBase: IntArray, val normalCount: IntArray, val expanded: Boolean) {
+    class Layout(
+        val label: String,
+        val normalBase: IntArray,
+        val normalCount: IntArray,
+        val expanded: Boolean,
+        /** Archivo del HAIR con ID 0 para FACE creada y normal. */
+        val hairBase: Int = HAIR_BASE,
+        /** Mayor ID de HAIR que existe en el bloque de cabellos. */
+        val hairMaxId: Int = MAX_HAIR_ID,
+        /** true si los cabellos se copiaron a un bloque propio (ampliar_cabellos.py). */
+        val hairExpanded: Boolean = false,
+    ) {
         val files: IntRange = normalBase.minOrNull()!!..(0 until 4).maxOf { normalBase[it] + normalCount[it] - 1 }
+        val hairFiles: IntRange get() = hairBase..hairBase + hairMaxId
     }
 
     val STANDARD = Layout("0_text original", ORIGINAL_NORMAL_FACE, ORIGINAL_NORMAL_COUNT, false)
@@ -36,6 +50,25 @@ object Relink {
         intArrayOf(11778, 12189, 12412, 12501),
         IntArray(4) { ORIGINAL_NORMAL_COUNT[it] + SPECIAL_COUNT[it] },
         true,
+    )
+
+    /** Primer ID de HAIR de tipo Especial (EN) en la lista del editor, y último ID del juego. */
+    const val FIRST_EN = 1026
+    const val LAST_ORIGINAL_EN = 1299
+    /** Cabellos EN nuevos (IDs 1300 en adelante) que añade ampliar_cabellos.py: 773 EN en total. */
+    const val EN_TOTAL = 773
+    const val EXPANDED_HAIR_BASE = 12551
+    val ORIGINAL_NORMAL_HAIRS = 2829..4128    // IDs 0-1299, los que se copian al bloque nuevo
+
+    /** Caras y cabellos ampliados (release 1.3: ampliar_caras.py y después ampliar_cabellos.py). */
+    val EXPANDED_HAIR = Layout(
+        "0_text ampliado (caras y cabellos)",
+        EXPANDED.normalBase,
+        EXPANDED.normalCount,
+        true,
+        hairBase = EXPANDED_HAIR_BASE,
+        hairMaxId = LAST_ORIGINAL_EN + (EN_TOTAL - 274),
+        hairExpanded = true,
     )
 
     /** Distribución que usa la app. Se elige en Ajustes. */
@@ -50,7 +83,7 @@ object Relink {
     val ORIGINAL_HAIRS = 2829..4428
     const val MAX_NUMBER = 512
     const val MAX_HAIR_ID = 2047
-    val HAIR_FILES = HAIR_BASE..HAIR_BASE + MAX_HAIR_ID
+    val HAIR_FILES: IntRange get() = layout.hairFiles
 
     val SKIN_NAMES = listOf("1 (W)", "2 (Y)", "3 (R)", "4 (K)")
     fun skinName(skin: Int) = SKIN_NAMES.getOrElse(skin - 1) { "$skin" }
@@ -67,7 +100,7 @@ object Relink {
     /** Archivo de HAIR que carga el juego, o null si el tipo de FACE es desconocido. */
     fun hairFile(f: Face): Int? = when (f.type) {
         FaceFields.SPECIAL -> faceFile(f)?.plus(SPECIAL_HAIR_OFFSET)
-        FaceFields.BUILD, FaceFields.NORMAL -> HAIR_BASE + f.hair
+        FaceFields.BUILD, FaceFields.NORMAL -> layout.hairBase + f.hair
         else -> null
     }
 
@@ -95,6 +128,42 @@ object Relink {
         val skin = (1..4).firstOrNull { file - ORIGINAL_NORMAL_FACE[it - 1] in 0 until ORIGINAL_NORMAL_COUNT[it - 1] } ?: return null
         return NORMAL_FACE[skin - 1] + file - ORIGINAL_NORMAL_FACE[skin - 1]
     }
+
+    data class HairId(val id: Int?, val error: String? = null, val note: String? = null)
+
+    /**
+     * ID de HAIR que carga el archivo [file] de HAIR escrito por el usuario.
+     * - 0_text original: 2829 + ID, para cualquier archivo entre 2829 y 4876.
+     * - 0_text con cabellos ampliados: el archivo del bloque nuevo, o el del 0_text original si es uno de los
+     *   IDs 0-1299 (están copiados). Los cabellos de las FACE especiales (4149-4428) y los 20 con gorra
+     *   (4129-4148) no están en el bloque: se avisa con el EN equivalente.
+     */
+    fun hairIdFor(file: Int): HairId {
+        val l = layout
+        if (!l.hairExpanded) {
+            if (file !in l.hairFiles) return HairId(null, "El archivo de HAIR debe estar entre ${l.hairFiles.first} y ${l.hairFiles.last}.")
+            return HairId(file - l.hairBase)
+        }
+        if (file in l.hairFiles) return HairId(file - l.hairBase)
+        if (file in ORIGINAL_NORMAL_HAIRS) {
+            val id = file - HAIR_BASE
+            return HairId(id, note = "El archivo $file está copiado en el ${l.hairBase + id} del bloque de cabellos (ID $id).")
+        }
+        val special = if (file in SPECIAL_HAIRS) {
+            val k = file - SPECIAL_HAIRS.first
+            if (k < TEXTURED_EN) " Su EN equivalente es el ID ${FIRST_EN + 18 + k} (archivo ${l.hairBase + FIRST_EN + 18 + k}): " +
+                "copia ahí el contenido si quieres elegirlo desde el editor." else " No tiene EN equivalente."
+        } else ""
+        return HairId(
+            null,
+            "El archivo de HAIR $file no está en el bloque de cabellos (${l.hairFiles.first}-${l.hairFiles.last}); " +
+                "los cabellos de las FACE especiales (${SPECIAL_HAIRS.first}-${SPECIAL_HAIRS.last}) y los modelos con gorra " +
+                "(4129-4148) solo se cargan con su FACE especial.$special",
+        )
+    }
+
+    /** Número de EN con textura propia que tienen equivalente en los cabellos de FACE especial. */
+    private const val TEXTURED_EN = 256
 
     /**
      * Archivo de la FACE normal que es copia de la FACE especial de [file]: la copia exacta con el
@@ -185,14 +254,22 @@ object Relink {
         }
 
         if (hairEntry != null) {
-            if (hairEntry !in HAIR_FILES) {
-                return Result(null, "El archivo de HAIR debe estar entre ${HAIR_FILES.first} y ${HAIR_FILES.last}.")
-            }
-            f = f.copy(hair = hairEntry - HAIR_BASE)
+            val hid = hairIdFor(hairEntry)
+            if (hid.id == null) return Result(null, hid.error)
+            hid.note?.let { notes += it }
+            f = f.copy(hair = hid.id)
         }
-        val h = HAIR_BASE + f.hair
+        val h = layout.hairBase + f.hair
+        if (f.hair > layout.hairMaxId) {
+            return Result(null, "El ID de HAIR ${f.hair} no existe: el último es el ${layout.hairMaxId}.")
+        }
         notes += "HAIR: archivo $h (ID de HAIR ${f.hair})."
-        when (h) {
+        if (layout.hairExpanded) {
+            when {
+                f.hair >= FIRST_EN && f.hair <= LAST_ORIGINAL_EN -> notes += "Es un EN (especial normal) del juego."
+                f.hair > LAST_ORIGINAL_EN -> notes += "Es un EN nuevo: un clon de relleno que puedes reemplazar en el 0_text."
+            }
+        } else when (h) {
             !in ORIGINAL_HAIRS -> notes += "El archivo $h no es un HAIR en el 0_text original (${ORIGINAL_HAIRS.first}-${ORIGINAL_HAIRS.last})."
             in SPECIAL_HAIRS -> notes += "Está en la zona de HAIR especiales y se carga como HAIR normal: sin probar en el juego."
         }

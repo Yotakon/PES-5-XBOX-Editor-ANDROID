@@ -40,12 +40,23 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         val expanded = CheckBox(this).apply {
-            text = "Uso el 0_text ampliado (FACE especiales añadidas a las normales de cada piel, " +
+            text = "Uso el 0_text con las FACE ampliadas (FACE especiales añadidas a las normales de cada piel, " +
                 "con herramientas/ampliar_caras.py y su PES5.xbe)"
             isChecked = FaceSettings.expanded(this@SettingsActivity)
             setPadding(0, pad, 0, 0)
         }
+        val expandedHair = CheckBox(this).apply {
+            text = "...y también los HAIR ampliados (773 cabellos EN en el editor, " +
+                "con herramientas/ampliar_cabellos.py y su PES5.xbe)"
+            isChecked = FaceSettings.expandedHair(this@SettingsActivity)
+            isEnabled = expanded.isChecked
+        }
+        expanded.setOnCheckedChangeListener { _, on ->
+            expandedHair.isEnabled = on
+            if (!on) expandedHair.isChecked = false
+        }
         root.addView(expanded)
+        root.addView(expandedHair)
         root.addView(Button(this).apply {
             text = "Guardar"
             setOnClickListener {
@@ -56,7 +67,7 @@ class SettingsActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
                 FaceSettings.save(this@SettingsActivity, values)
-                FaceSettings.setExpanded(this@SettingsActivity, expanded.isChecked)
+                FaceSettings.setExpanded(this@SettingsActivity, expanded.isChecked, expandedHair.isChecked)
                 Toast.makeText(this@SettingsActivity, "Guardado", Toast.LENGTH_SHORT).show()
                 finish()
             }
